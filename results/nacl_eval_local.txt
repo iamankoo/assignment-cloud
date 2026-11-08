@@ -1,0 +1,12 @@
+A1 inbound  tcp 443    203.0.113.7      -> allow (rule 120) OK
+A2 inbound  tcp 80     198.51.100.200   -> deny (rule 100) OK
+A3 inbound  tcp 22     10.20.5.130      -> allow (rule 130) OK
+A4 inbound  tcp 22     203.0.113.7      -> deny (rule None) OK
+A5 inbound  tcp 40000  10.20.1.5        -> allow (rule 140) OK
+A6 inbound  tcp 40000  10.20.5.5        -> deny (rule None) OK
+A7 outbound tcp 8000   10.20.2.9        -> allow (rule 100) OK
+A8 outbound tcp 8000   10.20.5.5        -> allow (rule 110) OK
+A9 outbound tcp 51000  203.0.113.7      -> allow (rule 110) OK
+A10 outbound tcp 443    203.0.113.7      -> deny (rule None) OK
+A11 inbound  udp 443    203.0.113.7      -> deny (rule None) OK
+11/11 as expected

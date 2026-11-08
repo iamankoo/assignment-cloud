@@ -1,0 +1,11 @@
+{"id": "A1", "direction": "inbound", "protocol": "tcp", "port": 443, "address": "203.0.113.7", "expected": "allow"}
+{"id": "A2", "direction": "inbound", "protocol": "tcp", "port": 80, "address": "198.51.100.200", "expected": "deny"}
+{"id": "A3", "direction": "inbound", "protocol": "tcp", "port": 22, "address": "10.20.5.130", "expected": "allow"}
+{"id": "A4", "direction": "inbound", "protocol": "tcp", "port": 22, "address": "203.0.113.7", "expected": "deny"}
+{"id": "A5", "direction": "inbound", "protocol": "tcp", "port": 40000, "address": "10.20.1.5", "expected": "allow"}
+{"id": "A6", "direction": "inbound", "protocol": "tcp", "port": 40000, "address": "10.20.5.5", "expected": "deny"}
+{"id": "A7", "direction": "outbound", "protocol": "tcp", "port": 8000, "address": "10.20.2.9", "expected": "allow"}
+{"id": "A8", "direction": "outbound", "protocol": "tcp", "port": 8000, "address": "10.20.5.5", "expected": "allow"}
+{"id": "A9", "direction": "outbound", "protocol": "tcp", "port": 51000, "address": "203.0.113.7", "expected": "allow"}
+{"id": "A10", "direction": "outbound", "protocol": "tcp", "port": 443, "address": "203.0.113.7", "expected": "deny"}
+{"id": "A11", "direction": "inbound", "protocol": "udp", "port": 443, "address": "203.0.113.7", "expected": "deny"}

@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+models/
+*.safetensors
+*.bin
+.env
+*.aux
+*.log
+*.out

@@ -1,0 +1,21 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - run: pip install pyflakes==3.2.0 pytest==8.3.2 fastapi==0.111.1 httpx==0.27.0 pydantic==2.8.2 jsonschema==4.23.0 pyyaml==6.0.2 boto3==1.35.76
+      - run: python -m pyflakes service tools scripts tests
+      - run: python -m pytest -q
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - run: |
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz | tar -xz gitleaks
+          ./gitleaks detect --source . --no-banner --redact --exit-code 1
+# NOT IMPLEMENTED: model evaluation from a GitHub Release and the 95% validity gate (no trained model exists).

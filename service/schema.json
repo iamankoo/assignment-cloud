@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["intent", "date", "time", "place"],
+  "properties": {
+    "intent": {"enum": ["alarm_set", "alarm_query", "calendar_set", "calendar_query", "calendar_remove", "weather_query", "datetime_query", "recommendation_events"]},
+    "date": {"type": ["string", "null"]},
+    "time": {"type": ["string", "null"]},
+    "place": {"type": ["string", "null"]}
+  }
+}

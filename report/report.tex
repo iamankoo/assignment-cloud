@@ -1,0 +1,50 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[margin=2cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{booktabs,array}
+\setlength{\parindent}{0pt}\setlength{\parskip}{4pt}
+\begin{document}
+{\LARGE\bfseries CS3081 Mini Project --- Technical Report (partial)}\\[2pt]
+\textbf{Aniket Raj}, roll no.\ 230103030, GitHub \texttt{iamankoo}, \texttt{github.com/iamankoo/Cloud-Assignment}
+
+\textbf{Scope statement.} This report covers an independent but \emph{incomplete} implementation written in roughly 30 minutes on 2026-11-08.
+Only items marked ``tested'' were run, on a Windows laptop with Python 3.10; there was no Docker daemon, k3d, Ollama or student\_kit.
+No training, labelling, deployment or load-test result exists, and none is reported.
+
+\begin{center}\small\begin{tabular}{@{}llp{9cm}@{}}\toprule
+Task & Status & Detail\\\midrule
+1 & not done & Needs the 3,000-command pool, Ollama and a cluster; none available.\\
+2 & not done & No labelled data, so no training, losses or scores.\\
+3 & implemented, tested (stub) & FastAPI \texttt{/parse}, \texttt{/healthz}, \texttt{/readyz}, headers, schema check, \texttt{FAULT\_INJECT}; Dockerfile not built.\\
+4 & written, not applied & \texttt{k8s/app.yaml}: namespace \texttt{app}, 2 replicas, requests/limits, probes, Service, Ingress, HPA 1--2 at 70\%.\\
+5 & done, tested & Subnets and NACL; own evaluator 11/11.\\
+6 & partial & Workflow and 9 tests exist; no CI run, no model gate, no \texttt{make up}.\\
+7 & not done & No deployment to measure.\\\bottomrule\end{tabular}\end{center}
+
+\section*{Task 3 --- Inference service}
+\texttt{service/app.py} validates every output against \texttt{schema.json} (exactly four keys, eight intents) and returns HTTP 500 with \texttt{invalid\_model\_output} otherwise;
+\texttt{FAULT\_INJECT=1} replaces the output by the text \texttt{not json}. \texttt{/readyz} returns 503 until a background thread has downloaded the model from S3 (boto3, credentials from the environment, i.e.\ a Secret in Kubernetes).
+Tests with an injected stub generator cover success and headers, invalid intent, extra key, fault injection and health/readiness (5 of the 9 tests; all pass).
+\textbf{Not verified:} real model loading, the prompt/training format match, image size ($\le$2\,GB), the 50-request CPU/memory test.
+
+\section*{Task 4 --- Kubernetes}
+The manifest was written to the specification (namespace \texttt{app}, two initial replicas, rolling update, probes, HPA min 1 max 2 target 70\%). A unit test checks these fields in the YAML. It was never applied to a cluster, so scaling, rollout, rollback, recovery and cold-start behaviour are \textbf{unverified}.
+
+\section*{Task 5 --- Subnetting and NACL}
+\begin{center}\small\begin{tabular}{@{}lrllr@{}}\toprule
+Subnet & Hosts & Network & Usable range & Usable\\\midrule
+app & 1,000 & 10.20.0.0/22 & 10.20.0.1--10.20.3.254 & 1,022\\
+public & 250 & 10.20.4.0/24 & 10.20.4.1--10.20.4.254 & 254\\
+data & 100 & 10.20.5.0/25 & 10.20.5.1--10.20.5.126 & 126\\
+management & 20 & 10.20.5.128/27 & 10.20.5.129--10.20.5.158 & 30\\\bottomrule\end{tabular}\end{center}
+Broadcasts: 10.20.3.255, 10.20.4.255, 10.20.5.127, 10.20.5.159. \texttt{scripts/subnet\_calc.py} reproduces this table and a test asserts it.
+The NACL (\texttt{network/nacl.json}) denies 198.51.100.0/24 as rule 100 (before the web allows 110/120), allows SSH only from 10.20.5.128/27, and has separate reply rules because a NACL is stateless.
+My own evaluator classified 11 of 11 hand-written packets as expected. Note: the required outbound reply rule (TCP 1024--65535 to anywhere) also permits outbound TCP 8000 to any address.
+The instructor's \texttt{nacl\_sim.py} and its six sample packets were \textbf{not} run.
+
+\section*{Task 6 --- CI/CD and AI use}
+\texttt{.github/workflows/ci.yml} runs pyflakes, pytest and gitleaks. \textbf{No run has occurred.} The Release-based evaluation, the 95\% validity gate and the deliberately failing run are not implemented. \texttt{AI\_USE.md} states that Claude Code wrote the code and how it was checked.
+
+\section*{Limitations and next steps}
+Obtain the student\_kit; label with Phi-3.5, clean, train Pythia-70M, publish a Release; build the image; run on k3d; add the quality gate; run Locust; compute cost and SLO. Until then, Tasks 1, 2, 4 (behaviour), 6 (gate) and 7 have no evidence.
+\end{document}
