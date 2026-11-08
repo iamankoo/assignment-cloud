@@ -13,7 +13,7 @@ Needed for the cluster steps (not available on the machine used so far): Docker,
 
 ## 2. Test **[RAN]**
 ```bash
-make test        # 14 unit tests passed (results/pytest_local.txt)
+make test        # 18 unit tests passed (results/pytest_local.txt)
 make lint        # pyflakes clean
 make nacl        # own evaluator: 11/11 (results/nacl_eval_local.txt)
 make subnets     # subnet plan (results/subnet_calc_local.txt)
@@ -31,10 +31,13 @@ Requires the instructor's `commands_pool.jsonl` in `data/` and Ollama reachable 
 
 Start the host Ollama server with these settings (server-side; they are settings, not a record of a run):
 ```bash
-export OLLAMA_HOST=0.0.0.0        # listen on all interfaces so pods in k3d can reach it (default is localhost only)
-export OLLAMA_NUM_PARALLEL=2      # two concurrent requests, one per labelling worker
+export OLLAMA_HOST=0.0.0.0:11434     # listen on all interfaces so pods in k3d can reach it (default is localhost only)
+export OLLAMA_NUM_PARALLEL=2         # two concurrent requests, one per labelling worker
+export OLLAMA_FLASH_ATTENTION=true   # Flash Attention enabled (value as written in the reflection)
 ollama serve
 ```
+SeaweedFS (`cluster/seaweedfs.yaml`): 2 GiB PersistentVolumeClaim mounted at `/data` and a 1.5 GiB memory limit, matching the configuration described in the reflection. These values are in my own manifest; the student's original file was not provided, so whether the OOM described in the reflection occurred is unverified.
+
 The worker Job reaches it through `OLLAMA_HOST=http://host.k3d.internal:11434` (a client-side URL set in `k8s/worker-job.yaml`; the same variable name, but a different meaning from the server setting above).
 ```bash
 make up

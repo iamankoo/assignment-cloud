@@ -12,7 +12,7 @@
 \textbf{Aniket Raj}, roll no.\ 230103030, GitHub \tc{iamankoo}, \tc{github.com/iamankoo/Cloud-Assignment}
 
 \colorbox{gray!15}{\parbox{\dimexpr\textwidth-2\fboxsep}{\small\textbf{Evidence policy.} This is an independent but \emph{incomplete} submission.
-\textbf{Implemented/tested} = exists and was run locally (14 unit tests, pyflakes, own NACL evaluator, subnet script; logs in \tc{results/}).
+\textbf{Implemented/tested} = exists and was run locally (18 unit tests, pyflakes, own NACL evaluator, subnet script; logs in \tc{results/}).
 \textbf{Method} = procedure described, \emph{not} executed. \ph\ = no measurement exists. No training, labelling, Docker build, cluster run, CI run or load test was performed. Expected outcomes are theory, not results.}}
 
 \section*{1. Introduction and architecture}
@@ -37,7 +37,7 @@ Task & Status & Evidence / gap\\\midrule
 3 & implemented, tested (stub) & 5 API tests; image not built, no 50-request test\\
 4 & manifest only & YAML fields tested; never applied\\
 5 & implemented, tested & subnet script and own evaluator 11/11; instructor's \tc{nacl\_sim.py} not run\\
-6 & partial & workflow, Makefile (\tc{make up/down}, not run); no CI run; no Release gate\\
+6 & partial & workflow incl. manual Release-gate job, Makefile (\tc{make up/down}); none ever run\\
 7 & code written, not run & Locust file, cost script; nothing deployed, no measurements\\\bottomrule\end{tabular}\end{center}
 
 \textbf{Model artifacts.} The GitHub Release \tc{reference-nanoparse-v1.0} holds two Pythia-70M archives that are \emph{externally sourced reference artifacts} (rahul-singh92/NanoParse release v1.0, author Rahul Singh Jadoun), re-uploaded unmodified. They were not trained or evaluated in this project and are not reported as my results (see \tc{docs/RELEASE\_METADATA.md}). Paths in this report use the GitHub repository layout; the submission ZIP maps them as listed in its \tc{README.md}.
@@ -91,7 +91,21 @@ Metric & Value\\\midrule
 p50 / p95 latency & \ph\\ Throughput & \ph\\ Error rate & \ph\\ Peak CPU / memory & \ph\\ Cold-start median & \ph\\ Cost per 1000 requests & \ph\\ SLO verdict & \ph\\\bottomrule\end{tabular}\end{center}
 Review table (six rows, evidence/limitation/improvement): requires real numbers \ph.
 
-\section*{9. Limitations and references}
+
+\section*{9. Figures reported in the original reflection (not verified)}
+These values are taken from my handwritten reflection. \textbf{No supporting logs exist in this project; none were created.} They are reported, not measured here.
+\begin{center}\small\begin{tabular}{@{}lll@{}}\toprule
+Item & Reported & Status\\\midrule
+Pod recovery under load & 18.93\,s & reported, unverified\\
+Traffic split across replicas & 53.4\% / 46.6\% & reported, unverified\\
+Cold start & 18.0\,s & reported, unverified\\
+Deployment cost (2 replicas) & 7.90 INR/h & reported, unverified\\
+Throughput & 2,052 requests/h & reported, unverified\\
+Cost per 1,000 requests & 3.95 INR & reported; arithmetic mismatch\\\bottomrule\end{tabular}\end{center}
+\textbf{Discrepancy for review.} $7.90/2052\times1000=3.85$ INR per 1,000 requests, not 3.95. A value of 3.95 would correspond to 2,000 requests/h, and 3.95 also equals $7.90/2$, the hourly cost of one replica (\tc{results/cost\_arithmetic\_check.txt}; arithmetic only).
+\textbf{Configuration described in the reflection:} \tc{OLLAMA\_HOST=0.0.0.0:11434}, \tc{OLLAMA\_NUM\_PARALLEL=2}, Flash Attention enabled; SeaweedFS with a 2\,GiB PVC and 1.5\,GiB memory limit (in my own manifest \tc{cluster/seaweedfs.yaml}). The described connection-refused and out-of-memory events, and the original \tc{k8s/data/seaweedfs.yaml}, were not provided and are unverified. See \tc{results/REPORTED\_FIGURES.md}.
+
+\section*{10. Limitations and references}
 No machine with Docker, k3d or Ollama and no student\_kit were available; Tasks 1, 2, 7 and all cluster/CI behaviour are unverified.
 References: Kim and Rush, \emph{Sequence-Level Knowledge Distillation}, 2016; Hinton et al., \emph{Distilling the Knowledge in a Neural Network}, 2015; Biderman et al., \emph{Pythia}, 2023; Kubernetes, k3d, FastAPI, Locust, AWS VPC (NACL) and Google SRE Book documentation.
 \end{document}

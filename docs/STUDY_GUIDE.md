@@ -254,7 +254,7 @@ Worked check for `app`: log2(1002) = 9.97, ceil = 10, p = 22, block = 1024, usab
 
 **Security.** Secrets only in Kubernetes Secrets or CI secrets; `.env` ignored by Git; weights excluded by `.gitignore`; gitleaks on every push; least privilege (**limitation:** one shared S3 identity is simplest but not minimal).
 
-**Testing.** [TESTED] 9 tests, pyflakes clean, locally only.
+**Testing.** [TESTED] 18 tests, pyflakes clean, locally only. The CI file also has a manual Release-based quality-gate job (written, never run).
 
 **AI use.** `AI_USE.md` states what Claude Code did and how outputs were checked.
 

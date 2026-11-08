@@ -1,0 +1,10 @@
+Inputs (as reported in the reflection, unverified): {'hourly_inr': 7.9, 'requests_per_hour': 2052.0, 'cost_per_1000_inr': 3.95}
+calculated_cost_per_1000: 3.8499
+reported_cost_per_1000: 3.95
+difference: 0.1001
+difference_pct: 2.6
+requests_per_hour_implied_by_reported_cost: 2000.0
+hourly_cost_per_replica_if_2_replicas: 3.95
+rps_from_requests_per_hour: 0.57
+agrees_within_0.5pct: False
+RESULT: DISCREPANCY: reported cost per 1000 does not follow from the reported hourly cost and throughput

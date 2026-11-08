@@ -13,10 +13,27 @@
 | 3. FastAPI service + Docker | Service implemented; API tests pass with a stub model; **Docker image not built** | `results/pytest_local.txt` |
 | 4. Kubernetes | Manifests written; YAML fields unit-tested; **never applied to a cluster** | `results/pytest_local.txt` |
 | 5. Networking + NACL | Implemented; subnet plan and own NACL evaluator tested (11/11) | `results/subnet_calc_local.txt`, `results/nacl_eval_local.txt` |
-| 6. CI/CD | Workflow written, **never run**; `make up`/`make down` written, **not run**; Release-based 95% gate **not implemented** | none |
+| 6. CI/CD | Workflow written, **never run**; `make up`/`make down` written, **not run**; Release-based 95% gate job written but **never run** | none |
 | 7. Performance, cost, review | Locust file and cost script written, **not run**; **no measurements exist** | none |
 
-Local verification (Python 3.10, Windows): 14 unit tests passed, pyflakes clean. Nothing else has been executed: no teacher labelling, training, Docker build, cluster deployment, CI run or load test. **This repository contains no experimental results.** The instructor's `student_kit` files (`commands_pool.jsonl`, `validation.jsonl`, `score.py`, `nacl_sim.py`, `rate_card.json`) are not included.
+Local verification (Python 3.10, Windows): 18 unit tests passed, pyflakes clean. Nothing else has been executed: no teacher labelling, training, Docker build, cluster deployment, CI run or load test. **This repository contains no experimental results.** The instructor's `student_kit` files (`commands_pool.jsonl`, `validation.jsonl`, `score.py`, `nacl_sim.py`, `rate_card.json`) are not included.
+
+## Figures reported in the original reflection (not independently verified)
+
+These values come from the student's handwritten reflection (`reflection/230103030.pdf`). **No supporting logs, CSVs or command outputs exist in this repository**, and none were created. They are preserved as reported and are not verified results.
+
+| Item | Reported value | Status |
+|---|---|---|
+| Pod recovery after deleting a pod under load | 18.93 s | reported, unverified |
+| Traffic distribution across replicas | 53.4% / 46.6% | reported, unverified |
+| Cold start | 18.0 s | reported, unverified |
+| Deployment cost (2 replicas) | 7.90 INR/hour | reported, unverified |
+| Throughput | 2,052 requests/hour | reported, unverified |
+| Cost per 1,000 requests | 3.95 INR | reported; **arithmetic discrepancy** |
+
+**Discrepancy for review:** 7.90 INR/hour at 2,052 requests/hour gives 7.90 / 2,052 x 1,000 = **3.85 INR per 1,000 requests**, not 3.95. 3.95 would correspond to 2,000 requests/hour, and it also equals the hourly cost of a single replica (7.90 / 2). See `results/REPORTED_FIGURES.md` and `results/cost_arithmetic_check.txt` (arithmetic check only, not a measurement).
+
+Configuration described in the reflection: `OLLAMA_HOST=0.0.0.0:11434`, `OLLAMA_NUM_PARALLEL=2`, Flash Attention enabled (documented in `docs/SETUP.md`); SeaweedFS with a 2 GiB PVC and a 1.5 GiB memory limit (present in `cluster/seaweedfs.yaml`, which is my own manifest). The reflection's original `k8s/data/seaweedfs.yaml` and the OOM and connection-refused events were not provided, so they are unverified. A typed transcription of the reflection is in `docs/REFLECTION_DRAFT.md`.
 
 ## Architecture
 
@@ -185,10 +202,10 @@ The instructor's `nacl_sim.py` and its six sample packets are not in this reposi
 
 ## Automated Testing and CI
 
-`.github/workflows/ci.yml` defines: (1) pyflakes lint, (2) pytest unit tests, (3) Gitleaks secret scanning. It has never run. The model evaluation stage and the 95% JSON-validity gate are not implemented.
+`.github/workflows/ci.yml` defines: (1) pyflakes lint, (2) pytest unit tests, (3) Gitleaks secret scanning, plus a manual `evaluate` job (workflow_dispatch) that downloads a Release archive and applies the 95% JSON-validity gate with the instructor's `score.py`. Nothing has ever run, and the `evaluate` job fails until the kit's `score.py` and `validation.jsonl` are added; its default Release points at the externally sourced reference artifacts.
 
 ```bash
-make lint && make test     # 14 passed locally
+make lint && make test     # 18 passed locally
 ```
 
 ## Model Artifacts

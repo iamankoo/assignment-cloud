@@ -35,6 +35,10 @@ spec:
           image: chrislusf/seaweedfs:3.68
           args: ["server", "-dir=/data", "-s3", "-s3.port=8333", "-s3.config=/etc/s3/s3.json"]
           ports: [{containerPort: 8333}]
+          # 1.5 GiB memory limit, as described in the student's reflection (OOM during model uploads).
+          # This is my own manifest aligned to that description, not the student's original file (not provided).
+          resources:
+            limits: {memory: 1536Mi}
           volumeMounts:
             - {name: data, mountPath: /data}
             - {name: s3cfg, mountPath: /etc/s3}

@@ -1,5 +1,19 @@
 name: CI
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      model_source:
+        description: "release = model archive from a GitHub Release; base = untrained Pythia-70M (shows the quality gate failing)"
+        default: release
+        type: choice
+        options: [release, base]
+env:
+  # NOTE: these point at the externally sourced reference artifacts (see docs/RELEASE_METADATA.md), not a model trained here.
+  # Replace with this project's own Release and asset name once its own model exists.
+  RELEASE_TAG: reference-nanoparse-v1.0
+  RELEASE_ASSET: pythia-70m-v1.tar.gz
 jobs:
   lint-test:
     runs-on: ubuntu-latest
@@ -10,6 +24,46 @@ jobs:
       - run: pip install pyflakes==3.2.0 pytest==8.3.2 fastapi==0.111.1 httpx==0.27.0 pydantic==2.8.2 jsonschema==4.23.0 pyyaml==6.0.2 boto3==1.35.76 requests==2.32.3
       - run: python -m pyflakes service tools scripts tests worker training
       - run: python -m pytest -q
+  # Manual only (workflow_dispatch). WRITTEN BUT NEVER RUN. Needs the instructor's tools/score.py and data/validation.jsonl,
+  # which are not in this repository, so it fails with a clear message until they are added.
+  evaluate:
+    if: github.event_name == 'workflow_dispatch'
+    needs: lint-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - run: pip install torch==2.4.1 --index-url https://download.pytorch.org/whl/cpu
+      - run: pip install transformers==4.44.2 tokenizers==0.19.1 numpy==1.26.4
+      - name: Require student_kit files
+        run: |
+          for f in tools/score.py data/validation.jsonl; do
+            [ -f "$f" ] || { echo "missing $f (instructor's student_kit file not in this repository)"; exit 1; }
+          done
+      - name: Resolve model
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event.inputs.model_source }}" = "base" ]; then
+            echo "MODEL=EleutherAI/pythia-70m" >> "$GITHUB_ENV"
+          else
+            mkdir -p models/v1
+            gh release download "$RELEASE_TAG" -p "$RELEASE_ASSET" -D models/
+            tar -xzf "models/$RELEASE_ASSET" -C models/v1
+            CFG=$(find models/v1 -name config.json | head -1)
+            echo "MODEL=$(dirname "$CFG")" >> "$GITHUB_ENV"
+          fi
+      - name: Predict and score (quality gate at 95% JSON validity)
+        run: |
+          mkdir -p results
+          python tools/predict.py --model "$MODEL" --input data/validation.jsonl --out results/pred_ci.jsonl
+          python tools/score.py results/pred_ci.jsonl data/validation.jsonl --out results/score_ci.json --min-validity 95
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: score-report
+          path: results/score_ci.json
   secret-scan:
     runs-on: ubuntu-latest
     steps:
@@ -18,4 +72,3 @@ jobs:
       - run: |
           curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz | tar -xz gitleaks
           ./gitleaks detect --source . --no-banner --redact --exit-code 1
-# NOT IMPLEMENTED: model evaluation from a GitHub Release and the 95% validity gate (no trained model exists).

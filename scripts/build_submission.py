@@ -63,6 +63,9 @@ TEST_PATCHES = {
     "tests/test_all.py": [
         ('[str(ROOT / "service"), str(ROOT / "tools"), str(ROOT / "scripts")]', '[str(ROOT / "src" / "service"), str(ROOT / "network")]'),
     ],
+    "tests/test_reported.py": [
+        ('sys.path[:0] = [str(ROOT / "scripts")]', 'sys.path[:0] = [str(ROOT / "src" / "scripts")]'),
+    ],
     "tests/test_pipeline.py": [
         ('[str(ROOT / "worker"), str(ROOT / "service")]', '[str(ROOT / "src" / "worker"), str(ROOT / "src" / "service")]'),
         ('ROOT / "tools" / "predict.py"', 'ROOT / "evaluation" / "predict.py"'),
@@ -142,7 +145,7 @@ def main():
         src = ROOT / rel
         tgt = stage / d
         tgt.parent.mkdir(parents=True, exist_ok=True)
-        is_text = (src.suffix in TEXT_EXT or src.name in ("Dockerfile", "Makefile")) and not rel.startswith("results/")
+        is_text = (src.suffix in TEXT_EXT or src.name in ("Dockerfile", "Makefile")) and not (rel.startswith("results/") and src.suffix != ".md")
         if is_text:
             text = src.read_bytes().decode("utf-8")
             text = rewrite_text(text, src.name == "Dockerfile")
