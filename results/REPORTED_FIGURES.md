@@ -4,6 +4,10 @@ Source: the student's handwritten reflection (`reflection/230103030.pdf`, page 3
 screenshot supporting these figures exists in this repository, and none has been fabricated. They are preserved here as the
 student reported them and must not be read as measurements verified by this repository.
 
+**As written in the reflection (verbatim, unchanged):** `18.93 s`; `53.4 %`, `46.6 %`; `18.0 s`; `7.9 INR/hr`; `2052 requests/hr`; `3.95 INR per 1000 requests`;
+`OLLAMA_HOST = 0.0.0.0:11434`; `OLLAMA_FLASH_ATTENTION = true`; `OLLAMA_NUM_PARALLEL = 2`; 2 GiB persistentVolumeClaim; 1.5 GiB memory limit.
+Other documents only reformat the same values (7.9 shown as 7.90, 2052 as 2,052); no value has been changed. The unit-cost arithmetic warning below applies wherever these figures appear.
+
 | Item | Reported value | Supporting file in repo | Status |
 |---|---|---|---|
 | Pod recovery after deleting an active pod under load | 18.93 s, "zero dropped connections" | none | **reported, unverified** |
