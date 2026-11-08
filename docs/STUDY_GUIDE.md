@@ -54,7 +54,7 @@ def shard(records, i, k):
     return [r for n, r in enumerate(records) if n % k == i]
 ```
 
-**Teacher prompt design.** The prompt (kept in `prompts/teacher_prompt.txt`, **[PLACEHOLDER: not yet written]**) must contain: the four keys, the eight intents with meanings, the three slot rules (copy exactly; shortest phrase; null if absent), two or three examples, and the instruction "reply with one JSON object and nothing else". Use temperature 0 so the run is repeatable.
+**Teacher prompt design.** The prompt (kept in `prompts/teacher_prompt.txt`; written but never used with the teacher) must contain: the four keys, the eight intents with meanings, the three slot rules (copy exactly; shortest phrase; null if absent), two or three examples, and the instruction "reply with one JSON object and nothing else". Use temperature 0 so the run is repeatable.
 
 **Cleaning algorithm.** For every teacher reply: (a) `json.loads` must succeed; (b) keys must be exactly `intent,date,time,place`; (c) `intent` must be one of eight; (d) each non-null slot string must appear in the command text (the "never invent a value" rule); (e) drop exact duplicates of (text, label). Count how many records each rule rejects. Identity: `input = kept + sum(rejected)` must hold. Write `train.jsonl` and its SHA-256 (`sha256sum train.jsonl`).
 
@@ -64,10 +64,10 @@ def shard(records, i, k):
 ```bash
 k3d cluster create --config cluster/k3d.yaml
 kubectl apply -f k8s/seaweedfs.yaml
-python scripts/upload_pool.py data/commands_pool.jsonl      # to bucket datasets
+python scripts/upload.py --bucket datasets --src data/commands_pool.jsonl --key commands_pool.jsonl
 kubectl apply -f k8s/worker-job.yaml                        # 2 parallel shards
 kubectl -n pipeline logs -f job/teacher-label
-python worker/clean.py --counts-out results/clean_counts.json
+python worker/clean.py --shards datasets/teacher/shard-0.jsonl datasets/teacher/shard-1.jsonl --counts-out results/clean_counts.json
 sha256sum datasets/v1/train.jsonl
 ```
 
@@ -119,9 +119,9 @@ for epoch in range(cfg.epochs):
 **Commands [METHOD].**
 ```bash
 make train SUBSET=50 && make train
-python training/predict.py --model models/v1 --input data/validation.jsonl --out results/pred_v1.jsonl
+python tools/predict.py --model training/output/v1 --input data/validation.jsonl --out results/pred_v1.jsonl
 python tools/score.py results/pred_v1.jsonl data/validation.jsonl --out results/score_v1.json --min-validity 95
-sha256sum models/v1/model.safetensors
+sha256sum training/output/v1/model.safetensors
 ```
 
 **Results.** *Not done.* Table to fill:

@@ -12,7 +12,7 @@
 \textbf{Aniket Raj}, roll no.\ 230103030, GitHub \tc{iamankoo}, \tc{github.com/iamankoo/Cloud-Assignment}
 
 \colorbox{gray!15}{\parbox{\dimexpr\textwidth-2\fboxsep}{\small\textbf{Evidence policy.} This is an independent but \emph{incomplete} submission.
-\textbf{Implemented/tested} = exists and was run locally (9 unit tests, pyflakes, own NACL evaluator, subnet script; logs in \tc{results/}).
+\textbf{Implemented/tested} = exists and was run locally (14 unit tests, pyflakes, own NACL evaluator, subnet script; logs in \tc{results/}).
 \textbf{Method} = procedure described, \emph{not} executed. \ph\ = no measurement exists. No training, labelling, Docker build, cluster run, CI run or load test was performed. Expected outcomes are theory, not results.}}
 
 \section*{1. Introduction and architecture}
@@ -32,13 +32,15 @@ A 3.8B-parameter teacher (Phi-3.5 Mini via Ollama) labels 3,000 commands once, o
 
 \begin{center}\small\begin{tabular}{@{}clp{10cm}@{}}\toprule
 Task & Status & Evidence / gap\\\midrule
-1 & not done & no student\_kit data, Ollama or cluster\\
-2 & not done & no labelled data, no training\\
+1 & code written, not run & worker, cleaning (unit-tested on toy data), Job manifest; no kit data, Ollama or cluster\\
+2 & code written, not run & training script and config; no labelled data, no training\\
 3 & implemented, tested (stub) & 5 API tests; image not built, no 50-request test\\
 4 & manifest only & YAML fields tested; never applied\\
 5 & implemented, tested & subnet script and own evaluator 11/11; instructor's \tc{nacl\_sim.py} not run\\
-6 & partial & workflow written, no CI run; no Release gate\\
-7 & not done & nothing deployed to measure\\\bottomrule\end{tabular}\end{center}
+6 & partial & workflow, Makefile (\tc{make up/down}, not run); no CI run; no Release gate\\
+7 & code written, not run & Locust file, cost script; nothing deployed, no measurements\\\bottomrule\end{tabular}\end{center}
+
+\textbf{Model artifacts.} The GitHub Release \tc{reference-nanoparse-v1.0} holds two Pythia-70M archives that are \emph{externally sourced reference artifacts} (rahul-singh92/NanoParse release v1.0, author Rahul Singh Jadoun), re-uploaded unmodified. They were not trained or evaluated in this project and are not reported as my results (see \tc{docs/RELEASE\_METADATA.md}). Paths in this report use the GitHub repository layout; the submission ZIP maps them as listed in its \tc{README.md}.
 
 \section*{2. Task 1 --- Object storage and parallel teacher labelling (method)}
 \textbf{Design.} SeaweedFS (S3 gateway) in namespace \tc{data}, buckets \tc{datasets} and \tc{models}. An Indexed Job (\tc{completions=parallelism=2}) in \tc{pipeline}; worker $i$ labels records with $n \bmod 2 = i$. Shards are complete (every $n$ has one residue), disjoint, and balanced ($1500+1500$).
