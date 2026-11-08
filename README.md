@@ -34,6 +34,8 @@ These values come from the student's handwritten reflection (`reflection/2301030
 
 **Discrepancy for review:** 7.90 INR/hour at 2,052 requests/hour gives 7.90 / 2,052 x 1,000 = **3.85 INR per 1,000 requests**, not 3.95. 3.95 would correspond to 2,000 requests/hour, and it also equals the hourly cost of a single replica (7.90 / 2). See `results/REPORTED_FIGURES.md` and `results/cost_arithmetic_check.txt` (arithmetic check only, not a measurement).
 
+Findings and improvements as reported in the reflection (not verified here; full wording in `docs/REFLECTION_DRAFT.md` and `results/REPORTED_FIGURES.md`): recovery within 18.93 s with zero dropped connections and an even traffic split (53.4% / 46.6%) is taken as showing high availability; the 7.9 INR/hr dual-replica cost at 2052 requests/hr is taken as cost-effective; proposed improvements are pre-hydrated persistent volumes (shared ReadWriteMany volume, safetensors `mmap = True`) to cut the 18.0 s cold start, and Cilium eBPF network policies in place of stateless NACLs. The reflection concludes the system is "reliable, cost-efficient and scalable"; this is a conclusion from the unverified figures above.
+
 Configuration described in the reflection: `OLLAMA_HOST=0.0.0.0:11434`, `OLLAMA_NUM_PARALLEL=2`, Flash Attention enabled (documented in `docs/SETUP.md`); SeaweedFS with a 2 GiB PVC and a 1.5 GiB memory limit (present in `cluster/seaweedfs.yaml`, which is my own manifest). The reflection's original `k8s/data/seaweedfs.yaml` and the OOM and connection-refused events were not provided, so they are unverified. A typed transcription of the reflection is in `docs/REFLECTION_DRAFT.md`.
 
 ## Architecture

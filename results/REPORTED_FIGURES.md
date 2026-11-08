@@ -18,6 +18,15 @@ Other documents only reformat the same values (7.9 shown as 7.90, 2052 as 2,052)
 | Throughput | 2,052 requests/hour | none | **reported, unverified** |
 | Cost per 1,000 requests | 3.95 INR | none | **reported; arithmetic does not match, see below** |
 
+## Findings and observations as reported in the reflection (not verified by this repository)
+
+Stated by the student in the handwritten reflection; they are conclusions drawn from the reported figures above, and nothing in this repository independently supports them.
+- **Chaos recovery / SRE observation:** deleting an active pod under load resulted in recovery within 18.93 s with zero dropped connections; traffic was quickly and evenly distributed across the available replicas (53.4%, 46.6%), which the reflection takes to show high availability and graceful handling of the failure without visible service interruption.
+- **Economic serving cost:** under the project rate card the dual-replica deployment costs 7.9 INR/hr; serving 2052 requests/hr resulted in a unit cost of 3.95 INR per 1000 requests, which the reflection takes to indicate a cost-effective setup that could be optimised with auto-scaling (see the arithmetic warning: this computes to 3.85).
+- **Improvement 1 (reported):** pre-hydrated persistent volumes, a shared ReadWriteMany volume with safetensors memory mapping (mmap = True), to remove the model-weight download and cut cold start from 18.0 s to sub-second.
+- **Improvement 2 (reported):** replace stateless NACLs with Cilium eBPF network policies for connection tracking and identity-aware filtering, without managing ephemeral-port return rules.
+- **Overall conclusion (reported):** the system is reliable, cost-efficient and scalable. This is a conclusion from the unverified figures above.
+
 ## Configuration described in the reflection
 | Item | Reported | In this repository |
 |---|---|---|
