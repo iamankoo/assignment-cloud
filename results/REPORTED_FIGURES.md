@@ -11,6 +11,7 @@ Other documents only reformat the same values (7.9 shown as 7.90, 2052 as 2,052)
 | Item | Reported value | Supporting file in repo | Status |
 |---|---|---|---|
 | Pod recovery after deleting an active pod under load | 18.93 s, "zero dropped connections" | none | **reported, unverified** |
+| Dropped connections during that recovery | Zero ("zero dropped connections") | none | **reported, unverified** |
 | Traffic distribution across replicas | 53.4% / 46.6% | none | **reported, unverified** (the two shares sum to 100%) |
 | Cold start | 18.0 s | none | **reported, unverified** |
 | Deployment cost (2 replicas) | 7.90 INR/hour | none | **reported, unverified** |

@@ -58,7 +58,7 @@ Overall, the observations show that the system is reliable, cost-efficient and s
 | Ollama settings `0.0.0.0:11434`, `NUM_PARALLEL=2`, Flash Attention | documented in `SETUP.md`; the described connection failure and fix are unverified (no output provided) |
 | "updated the Kubernetes service and network policies" | no network policy manifest exists in this repository |
 | SeaweedFS 2 GiB PVC, 1.5 GiB limit | present in my `cluster/seaweedfs.yaml`; original file `k8s/data/seaweedfs.yaml` and the OOM event unverified |
-| 18.93 s recovery, "zero dropped connections", 53.4% / 46.6% | reported; unverified |
+| 18.93 s recovery; zero dropped connections; 53.4% / 46.6% traffic split | reported; unverified |
 | 7.9 INR/hr, 2052 requests/hr | reported; unverified |
 | 3.95 INR per 1000 requests | reported; **arithmetic gives 3.85** (see `../results/REPORTED_FIGURES.md`) |
 | cold start 18.0 s | reported; unverified |

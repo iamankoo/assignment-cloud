@@ -25,6 +25,7 @@ These values come from the student's handwritten reflection (`reflection/2301030
 | Item | Reported value | Status |
 |---|---|---|
 | Pod recovery after deleting a pod under load | 18.93 s | reported, unverified |
+| Dropped connections during that recovery | Zero | reported, unverified |
 | Traffic distribution across replicas | 53.4% / 46.6% | reported, unverified |
 | Cold start | 18.0 s | reported, unverified |
 | Deployment cost (2 replicas) | 7.90 INR/hour | reported, unverified |
