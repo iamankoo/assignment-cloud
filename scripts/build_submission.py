@@ -65,6 +65,7 @@ TEST_PATCHES = {
     ],
     "tests/test_reported.py": [
         ('sys.path[:0] = [str(ROOT / "scripts")]', 'sys.path[:0] = [str(ROOT / "src" / "scripts")]'),
+        ('ROOT / "cluster" / "seaweedfs.yaml"', 'ROOT / "k8s" / "cluster" / "seaweedfs.yaml"'),
     ],
     "tests/test_pipeline.py": [
         ('[str(ROOT / "worker"), str(ROOT / "service")]', '[str(ROOT / "src" / "worker"), str(ROOT / "src" / "service")]'),
