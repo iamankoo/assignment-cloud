@@ -1,0 +1,12 @@
+# Student training configuration (Task 2). `make train` reads only this file (plus CLI overrides).
+# Values are PLANNED settings, not results of a run.
+model_name: EleutherAI/pythia-70m
+seed: 42
+learning_rate: 0.00005
+weight_decay: 0.01
+batch_size: 8
+epochs: 3
+max_seq_len: 128
+train_limit: 1500        # first 1,500 cleaned records only
+train_file: datasets/v1/train.jsonl
+output_dir: training/output
