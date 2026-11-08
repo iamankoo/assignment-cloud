@@ -1,96 +1,152 @@
-# CS3081 Cloud Computing Mini Project: Command-Parser Knowledge Distillation on a Local Cloud
+# Cloud-Assignment: Command-Parser Knowledge Distillation on a Local Cloud
 
-**Aniket Raj** · Roll no. 230103030 · GitHub `iamankoo` · aniketraj00384@gmail.com
+**Aniket Raj** · Roll no. 230103030 · GitHub `iamankoo` · aniketraj00384@gmail.com · CS3081 Cloud Computing mini project
 
-This is an independent, **incomplete** implementation (started from an empty repository, no copied history, code or results).
-It documents all seven tasks: what is built and tested, and the full methodology for what is not yet run.
-No training, labelling, Docker build, cluster deployment, CI run or load test has been performed, so no such results appear here.
-No `final` tag exists.
+A lightweight English command parser: a small student model (EleutherAI/Pythia-70M) is fine-tuned on JSON labels produced by a larger
+teacher (Ollama Phi-3.5 Mini) and served by a containerised FastAPI service on a local Kubernetes (k3d) cluster with SeaweedFS object storage.
 
-> **Submission snapshot (2026-11-09).** Finished for this snapshot: documentation for all seven tasks (this README, the study guide, the report),
-> the FastAPI service and its tests, the Kubernetes manifest, the subnet plan and NACL with local tests, the CI workflow file, and the scanned
-> handwritten reflection ([`reflection/230103030-cloud-computing.pdf`](reflection/230103030-cloud-computing.pdf)).
-> **Pending, to be done next (not yet run, so no results are claimed):** teacher labelling (Task 1), Pythia-70M training and evaluation (Task 2),
-> Docker build and cluster deployment (Tasks 3-4), a CI run with the model gate (Task 6), and load/cost measurements (Task 7).
-> Local checks re-run on 2026-11-09: 9 tests passed, pyflakes clean, own NACL evaluator 11/11.
+> **Branch note.** This is the `mock/nanoparse-style` branch, a presentation draft that follows the layout of a public reference project
+> (rahul-singh92/NanoParse) for README structure and directory organisation only. **All code here is my own and *not run* unless a result is
+> shown in the status table; no code, text or results were copied from the reference, and none of its results are reported.** `main` is unchanged.
+> No `final` tag exists.
 
-Documents: [`docs/STUDY_GUIDE.md`](docs/STUDY_GUIDE.md) (task-by-task explanation, maths, algorithms, procedures, result placeholders) ·
-[`report/report.pdf`](report/report.pdf) (technical report) · [`AI_USE.md`](AI_USE.md).
+## Status (honest)
 
-Legend: **IMPLEMENTED** = file exists · **TESTED** = run locally, log in `results/` · **METHOD** = described, not executed · **PLACEHOLDER** = no measurement yet.
-Several commands in the guide name scripts that do not exist yet (`worker/clean.py`, `training/train.py`, `scripts/upload_pool.py`, ...). They are planned, not present.
+| Task | State | Evidence in `results/` |
+|---|---|---|
+| 1 Object storage + parallel teacher labelling | Code written (`worker/`, `k8s/worker-job.yaml`, `cluster/seaweedfs.yaml`, `prompts/`); cleaning logic unit-tested on toy data; **labelling not run** | none |
+| 2 Student training | Code written (`training/`, `tools/predict.py`); **not run**; config values are planned settings | none |
+| 3 Inference service | Implemented; 5 API tests pass with a stub model; Docker image **not built** | `pytest_local.txt` |
+| 4 Kubernetes | Manifests written; YAML fields tested; **never applied** | `pytest_local.txt` |
+| 5 Networking | Implemented and tested with my own evaluator (11/11) | `nacl_eval_local.txt`, `subnet_calc_local.txt` |
+| 6 CI/CD | Workflow file written, **never run**; Release gate not implemented; `make up` written, **not run** | none |
+| 7 Performance, cost, review | Locust file and cost script written, **not run**; no measurements | none |
 
-## 1. Architecture
+Tests run locally (Python 3.10, Windows): **14 passed**, pyflakes clean, own NACL evaluator 11/11.
+
+## Architecture
 
 ```text
-commands_pool.jsonl (3,000) --upload--> SeaweedFS [datasets]
-        |  Indexed Job, 2 pods, shard = index mod 2
-        v
- Ollama + Phi-3.5 (teacher) -> shard-0/1.jsonl -> clean.py -> train.jsonl (+SHA-256)
-        |  first 1,500 records
-        v
- Pythia-70M fine-tune (sequence-level KD) -> model v1, v2 (+SHA-256)
-        |                                        |
-   GitHub Release                         SeaweedFS [models]
-        v                                        v
- FastAPI pods (ns app, 2 replicas) --download at start-up
+Natural-language command
         |
- Service :80 -> Traefik Ingress -> POST /parse        HPA 1..2 @ 70% CPU
+        v
+   FastAPI service  <-- model downloaded at start-up from SeaweedFS (s3://models/<version>)
+        |
+        v
+ Fine-tuned Pythia-70M  (prompt: "Command: <text>\nJSON:")
+        |
+        v
+ JSON-schema validation  --invalid--> HTTP 500 {"error":"invalid_model_output"}
+        |
+        v
+ {"intent","date","time","place"} + X-Model-Version, X-Served-By
+
+Offline pipeline:
+ commands_pool.jsonl -> SeaweedFS[datasets] -> 2 parallel teacher Jobs (shard = n mod 2, Ollama Phi-3.5)
+   -> worker/clean.py -> datasets/v1/train.jsonl (+SHA-256) -> training/train.py (first 1,500) -> model v1/v2
+   -> GitHub Release + SeaweedFS[models]
+Runtime: k3d (ns app): Deployment x2 -> Service :80 -> Traefik Ingress ; HPA 1..2 @ 70% CPU
 ```
 
-## 2. Status by task
+## Technology stack
+Teacher Ollama Phi-3.5 Mini · Student EleutherAI/Pythia-70M · PyTorch + Transformers · FastAPI + Uvicorn · SeaweedFS (S3) · Docker ·
+Kubernetes via k3d (Traefik Ingress, HPA) · Locust · GitHub Actions + Gitleaks · Python `ipaddress` for subnetting.
 
-| Task | Marks | State | Evidence |
-|---|---:|---|---|
-| 1 Object storage + parallel teacher labelling | 12 | **Not done** (no kit data, no Ollama, no cluster) | none |
-| 2 Student training (Pythia-70M) | 20 | **Not done** | none |
-| 3 Inference service | 14 | **IMPLEMENTED + TESTED with a stub model.** Dockerfile written, **not built**; image size and 50-request test not measured | `service/`, `results/pytest_local.txt` |
-| 4 Kubernetes | 22 | Manifest **IMPLEMENTED**; fields **TESTED** as YAML only; **never applied** | `k8s/app.yaml`, `tests/test_all.py` |
-| 5 Networking | 10 | **IMPLEMENTED + TESTED** with my own evaluator; instructor's `nacl_sim.py` not run | `network/`, `results/nacl_eval_local.txt`, `results/subnet_calc_local.txt` |
-| 6 CI/CD | 10 | Partial: workflow, Makefile, 9 tests, AI_USE written; **no CI run**; no Release gate; no `make up` | `.github/workflows/ci.yml` |
-| 7 Performance, cost, review | 12 | **Not done** (method and placeholders only; no load test, cost or SLO measurement exists) | none |
+## Repository structure
 
-Tested locally on 2026-11-08 (Python 3.10, Windows): `pytest` 9 passed; `pyflakes` clean; own NACL evaluator 11 of 11 as expected; subnet script reproduces `network/subnets.md`.
+| Path | Purpose |
+|---|---|
+| `data/`, `datasets/` | Kit data (`commands_pool`, `validation`, `schema`, `rate_card`: **not in repo yet**) and cleaned training data |
+| `prompts/` | Teacher prompt |
+| `worker/` | `teacher_worker.py` (sharded labelling), `clean.py`, Dockerfile |
+| `training/` | `config.yaml`, `train.py` |
+| `service/` | FastAPI app, `schema.json`, Dockerfile, pinned requirements |
+| `cluster/` | k3d and SeaweedFS configuration |
+| `k8s/` | App Deployment/Service/Ingress/HPA (`app.yaml`), labelling Job |
+| `network/` | `subnets.md`, `nacl.json`, own sample packets |
+| `tools/` | `nacl_eval.py`, `predict.py`, `locustfile.py` (the kit's `score.py` and `nacl_sim.py` are not included) |
+| `scripts/` | `deploy.sh`, `destroy.sh`, `upload.py`, `cost.py`, `subnet_calc.py` |
+| `tests/` | 14 unit tests |
+| `docs/STUDY_GUIDE.md`, `report/` | Task-by-task explanation; technical report |
+| `results/` | Local logs of what was actually run |
+| `reflection/` | Scanned handwritten reflection |
 
-## 3. Task summaries (full detail in the study guide)
+## Requirements
+Docker, k3d, kubectl, Python 3.11, GNU Make, GitHub CLI, Ollama with `phi3.5`, Locust. (The machine used so far had Python only.)
 
-**Task 1.** Command pool to SeaweedFS (`datasets`, `models` buckets); Indexed Job with 2 pods labels shard `i = index mod 2` using Phi-3.5 through Ollama; cleaning keeps records with valid JSON, exact four keys, one of eight intents, slot values present in the text, no duplicates; report counts and SHA-256. Identity to check: input = kept + rejected. **METHOD only.**
-
-**Task 2.** Sequence-level distillation: cross-entropy on the teacher's output sequence, `L = -sum_t log p(y*_t | x, y*_<t)`, prompt tokens masked. Pythia-70M, first 1,500 cleaned records, config in `training/config.yaml`, `make train` and `make train SUBSET=50`, versions v1/v2, checksums, Release assets, evaluation of teacher / untrained / trained student with `score.py`. **METHOD only.**
-
-**Task 3.** FastAPI `POST /parse`, `GET /healthz`, `GET /readyz`; headers `X-Model-Version`, `X-Served-By`; every output validated against `service/schema.json`, else HTTP 500 `invalid_model_output`; `FAULT_INJECT=1` forces `not json`. Model downloaded from S3 at start-up. Dockerfile: CPU-only torch, pinned deps, no weights. **IMPLEMENTED; 5 service tests pass; image not built.**
-
-**Task 4.** `k8s/app.yaml`: namespace `app`, Deployment (2 replicas, requests 250m/512Mi, limits 1 CPU/1Gi, liveness `/healthz`, readiness `/readyz`, RollingUpdate maxUnavailable 0), Service, Ingress, HPA min 1 max 2 at 70%. HPA rule: `desired = ceil(current * utilisation / target)`. Rollout, rollback, recovery and cold-start procedures are in the guide. **Manifest only.**
-
-**Task 5.** 10.20.0.0/16 split: app 10.20.0.0/22, public 10.20.4.0/24, data 10.20.5.0/25, management 10.20.5.128/27 (`network/subnets.md`). NACL in `network/nacl.json`: deny 198.51.100.0/24 first (rule 100), allow 80/443, SSH only from management, ephemeral replies in both directions, default deny. **IMPLEMENTED + TESTED.**
-
-**Task 6.** CI: pyflakes, pytest, gitleaks. Planned gate: `score.py --min-validity 95` on the Release model, shown failing with the untrained model. **Partly implemented, never run.**
-
-**Task 7.** Locust (4 users, 2 min), p50/p95, throughput, error rate, CPU/memory, cold start, cost per 1,000 requests = hourly cost / (throughput x 3600) x 1000, SLO and error budget, six-row review table. **METHOD only; all numbers are placeholders.**
-
-## 4. Prerequisites and commands
-
-Needs (not all present on the machine used): Python 3.11, Docker, k3d, kubectl, GNU Make, GitHub CLI, Ollama with `phi3.5`, Locust.
-
+## Setup
 ```bash
-pip install fastapi httpx pydantic jsonschema pyyaml pytest pyflakes boto3
-make test        # 9 tests                         [TESTED]
-make lint        # pyflakes                         [TESTED]
-make nacl        # own NACL evaluator, 11 packets   [TESTED]
-make subnets     # subnet table                     [TESTED]
+git clone https://github.com/iamankoo/Cloud-Assignment.git && cd Cloud-Assignment
+python -m venv .venv && source .venv/bin/activate
+pip install fastapi httpx pydantic jsonschema pyyaml pytest pyflakes boto3 requests locust
+cp .env.example .env        # local dev secret; never commit .env
 ```
 
-Not implemented yet (METHOD in the study guide): `make up` (cluster + build + deploy), `make train`, `make label`, `make eval`, `make load`.
-`make down` runs `k3d cluster delete cloud-assignment`, which only works once a cluster of that name exists.
+## Teacher labelling and object storage (Task 1) — NOT RUN
+```bash
+make up                                                     # cluster + SeaweedFS + images + app
+python scripts/upload.py --bucket datasets --src data/commands_pool.jsonl --key commands_pool.jsonl
+make label                                                  # Indexed Job, 2 pods, shard = n mod 2
+make clean-data                                             # counts + SHA-256
+```
+Cleaning rejects: invalid JSON, wrong keys, intent outside the eight, slot value not in the command, duplicates. Identity: input = kept + rejected (unit-tested).
 
-## 5. Model storage
-Weights are never committed (`.gitignore` excludes `models/`, `*.safetensors`, `*.bin`). The plan is: upload to the SeaweedFS `models` bucket, attach archives and SHA-256 files to a GitHub Release; the service downloads from `MODEL_URI` at start-up using credentials from a Kubernetes Secret. **No model exists yet.**
+## Student training (Task 2) — NOT RUN
+Planned configuration (`training/config.yaml`): Pythia-70M, first 1,500 cleaned records, 3 epochs, batch 8, lr 5e-5, AdamW weight decay 0.01, max length 128, seed 42, CPU.
+Loss is cross-entropy on the JSON answer only (sequence-level distillation).
+```bash
+make train SUBSET=50     # smoke test
+make train VERSION=v1
+make train VERSION=v2    # second version for the rollout
+```
 
-## 6. Repository layout
-`service/` API + Dockerfile + schema · `k8s/` manifests · `network/` subnets, NACL, packets · `tools/nacl_eval.py` · `scripts/subnet_calc.py` · `tests/` · `results/` local logs only · `report/` · `docs/STUDY_GUIDE.md` · `.github/workflows/ci.yml`.
+## Evaluation (Task 2) — no results yet
+```bash
+python tools/predict.py --model training/output/v1 --input data/validation.jsonl --out results/pred_v1.jsonl
+python tools/score.py results/pred_v1.jsonl data/validation.jsonl --out results/score_v1.json --min-validity 95   # kit script
+```
+| Model | JSON validity | Intent | Date | Time | Place | Full frame |
+|---|---|---|---|---|---|---|
+| Teacher | not measured | | | | | |
+| Untrained Pythia-70M | not measured | | | | | |
+| Student v1 | not measured | | | | | |
 
-## 7. Cleanup
-`make down` (after a cluster exists). Nothing else is installed by this repository.
+## FastAPI and Docker (Task 3)
+`POST /parse`, `GET /healthz`, `GET /readyz` (503 until loaded); `FAULT_INJECT=1` forces invalid output. Config via `MODEL_URI`, `MODEL_VERSION`, `S3_ENDPOINT`, `MAX_NEW_TOKENS`; credentials from a Secret.
+```bash
+docker build -f service/Dockerfile -t command-parser:v1 .     # NOT RUN: size must be <= 2 GB
+```
 
-## 8. Not verified
-Docker build and size, any cluster behaviour, real-model inference, Locust, gitleaks, CI, cost, SLO, instructor's `score.py` / `nacl_sim.py`, and everything in Tasks 1, 2 and 7.
+## Kubernetes and scaling (Task 4) — manifests only
+Namespace `app`, 2 replicas, requests 250m/512Mi, limits 1 CPU/1Gi, liveness `/healthz`, readiness `/readyz`, RollingUpdate (maxUnavailable 0), HPA 1..2 at 70% CPU.
+Rollout/rollback: `kubectl -n app set env deploy/command-parser MODEL_VERSION=v2 MODEL_URI=s3://models/v2` then `kubectl -n app rollout undo deploy/command-parser`. Not executed.
+
+## Networking and NACL (Task 5) — done
+10.20.0.0/16: app 10.20.0.0/22, public 10.20.4.0/24, data 10.20.5.0/25, management 10.20.5.128/27 (`network/subnets.md`). NACL in `network/nacl.json`.
+```bash
+make subnets && make nacl
+```
+
+## CI/CD and testing (Task 6)
+`.github/workflows/ci.yml`: pyflakes, pytest, gitleaks. Not implemented: Release-based evaluation and the 95% gate with a deliberately failing run. No CI run exists yet.
+```bash
+make lint && make test     # 14 passed locally
+```
+
+## Performance, cost and reliability (Task 7) — no measurements
+```bash
+make load      # 4 users, 2 minutes
+python scripts/cost.py --rate-card data/rate_card.json --replicas 2 --cpu 1 --mem-gib 1 --rps <measured>
+```
+Cost per 1,000 requests = hourly cost / (throughput × 3600) × 1000. All values pending.
+
+## Shutdown
+```bash
+make down
+```
+
+## Limitations and future work
+Tasks 1, 2 and 7 have no executed results; the Docker image, cluster, CI and gate are unverified; the kit's `score.py`, `nacl_sim.py` and data are not included.
+Next: run the pipeline end to end, publish v1/v2 as Release assets, add the Release-based CI gate, collect Locust/CPU/memory/cold-start data, fill the review table.
+
+More detail: [`docs/STUDY_GUIDE.md`](docs/STUDY_GUIDE.md), [`report/report.pdf`](report/report.pdf), [`AI_USE.md`](AI_USE.md).

@@ -1,0 +1,21 @@
+You convert one short English voice command into a single JSON object.
+
+Output exactly four keys: "intent", "date", "time", "place". Reply with the JSON object only, no explanation.
+
+"intent" must be one of:
+alarm_set, alarm_query, calendar_set, calendar_query, calendar_remove, weather_query, datetime_query, recommendation_events
+
+Slot rules:
+1. Copy a slot value exactly as it appears in the command. Do not convert it ("seven am" stays "seven am").
+2. Copy the shortest phrase that carries the meaning, without words like at, on, in, or for.
+3. If the command does not mention a slot, use null. Never invent a value.
+
+Examples:
+Command: set an alarm for seven thirty am tomorrow
+{"intent": "alarm_set", "date": "tomorrow", "time": "seven thirty am", "place": null}
+Command: what is the weather in london
+{"intent": "weather_query", "date": null, "time": null, "place": "london"}
+Command: delete my appointment tomorrow
+{"intent": "calendar_remove", "date": "tomorrow", "time": null, "place": null}
+
+Command: {text}
