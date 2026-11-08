@@ -131,7 +131,15 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out-dir", required=True)
     ap.add_argument("--stage")
+    ap.add_argument("--require-tag", help="abort unless HEAD equals this tag's commit and the working tree is clean")
     a = ap.parse_args()
+    if a.require_tag:
+        head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip()
+        tag = subprocess.run(["git", "rev-parse", a.require_tag + "^{commit}"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip()
+        dirty = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip()
+        if head != tag or dirty:
+            raise SystemExit(f"not building: HEAD={head} tag={tag} dirty={bool(dirty)}")
+        print(f"building from tag {a.require_tag} = {tag}")
     out_dir = pathlib.Path(a.out_dir)
     stage_root = pathlib.Path(a.stage) if a.stage else out_dir / "_stage"
     stage = stage_root / ROLL

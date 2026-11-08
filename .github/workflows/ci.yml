@@ -10,10 +10,10 @@ on:
         type: choice
         options: [release, base]
 env:
-  # NOTE: these point at the externally sourced reference artifacts (see docs/RELEASE_METADATA.md), not a model trained here.
-  # Replace with this project's own Release and asset name once its own model exists.
-  RELEASE_TAG: reference-nanoparse-v1.0
-  RELEASE_ASSET: pythia-70m-v1.tar.gz
+  # PLACEHOLDERS for this project's OWN model Release, which does not exist yet. The `release` source of the manual evaluate job
+  # fails at the download step until such a Release exists (the externally sourced archives were removed; see docs/RELEASE_METADATA.md).
+  RELEASE_TAG: model-v1
+  RELEASE_ASSET: v1.tar.gz
 jobs:
   lint-test:
     runs-on: ubuntu-latest

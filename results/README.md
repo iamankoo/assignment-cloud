@@ -16,4 +16,4 @@ Everything here is classified so that measured evidence cannot be confused with 
 
 ## Not present (nothing was fabricated to fill these)
 Teacher shard files, cleaning counts, training config run/loss logs, `score.py` outputs, Locust CSVs, `kubectl` outputs, SeaweedFS manifest used in the original run, Docker build/size output, CI run links, and any SHA-256 of models trained by the student.
-The model archives in the GitHub Release are externally sourced reference artifacts; see `../docs/RELEASE_METADATA.md`.
+The GitHub Release has no model archives: the externally sourced archives were removed (redistribution permission could not be established) and only their original checksum manifests remain; see `../docs/RELEASE_METADATA.md`.

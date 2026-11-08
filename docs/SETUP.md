@@ -74,4 +74,4 @@ make down
 ```
 
 ## 9. Model artifacts
-Weights are never committed. The Release `reference-nanoparse-v1.0` contains externally sourced reference archives; see `RELEASE_METADATA.md`.
+Weights are never committed. The Release `reference-nanoparse-v1.0` is a provenance record only (the externally sourced archives were removed because redistribution permission could not be established; only checksum manifests remain). Your own v1/v2 archives, checksums and Release are still to be produced; see `RELEASE_METADATA.md`.

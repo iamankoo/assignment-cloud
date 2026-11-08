@@ -36,7 +36,7 @@ These values come from the student's handwritten reflection (`reflection/2301030
 
 Findings and improvements as reported in the reflection (not verified here; full wording in `docs/REFLECTION_DRAFT.md` and `results/REPORTED_FIGURES.md`): recovery within 18.93 s with zero dropped connections and an even traffic split (53.4% / 46.6%) is taken as showing high availability; the 7.9 INR/hr dual-replica cost at 2052 requests/hr is taken as cost-effective; proposed improvements are pre-hydrated persistent volumes (shared ReadWriteMany volume, safetensors `mmap = True`) to cut the 18.0 s cold start, and Cilium eBPF network policies in place of stateless NACLs. The reflection concludes the system is "reliable, cost-efficient and scalable"; this is a conclusion from the unverified figures above.
 
-Configuration described in the reflection: `OLLAMA_HOST=0.0.0.0:11434`, `OLLAMA_NUM_PARALLEL=2`, Flash Attention enabled (documented in `docs/SETUP.md`); SeaweedFS with a 2 GiB PVC and a 1.5 GiB memory limit (present in `cluster/seaweedfs.yaml`, which is my own manifest). The reflection's original `k8s/data/seaweedfs.yaml` and the OOM and connection-refused events were not provided, so they are unverified. A typed transcription of the reflection is in `docs/REFLECTION_DRAFT.md`.
+Configuration described in the reflection: `OLLAMA_HOST=0.0.0.0:11434`, `OLLAMA_NUM_PARALLEL=2`, `OLLAMA_FLASH_ATTENTION=true` (Flash Attention enabled) (documented in `docs/SETUP.md`); SeaweedFS with a 2 GiB PVC and a 1.5 GiB memory limit (present in `cluster/seaweedfs.yaml`, which is my own manifest). The reflection's original `k8s/data/seaweedfs.yaml` and the OOM and connection-refused events were not provided, so they are unverified. A typed transcription of the reflection is in `docs/REFLECTION_DRAFT.md`.
 
 ## Architecture
 
@@ -205,7 +205,7 @@ The instructor's `nacl_sim.py` and its six sample packets are not in this reposi
 
 ## Automated Testing and CI
 
-`.github/workflows/ci.yml` defines: (1) pyflakes lint, (2) pytest unit tests, (3) Gitleaks secret scanning, plus a manual `evaluate` job (workflow_dispatch) that downloads a Release archive and applies the 95% JSON-validity gate with the instructor's `score.py`. Nothing has ever run, and the `evaluate` job fails until the kit's `score.py` and `validation.jsonl` are added; its default Release points at the externally sourced reference artifacts.
+`.github/workflows/ci.yml` defines: (1) pyflakes lint, (2) pytest unit tests, (3) Gitleaks secret scanning, plus a manual `evaluate` job (workflow_dispatch) that downloads a Release archive and applies the 95% JSON-validity gate with the instructor's `score.py`. Nothing has ever run, and the `evaluate` job fails until the kit's `score.py` and `validation.jsonl` are added; its Release settings are placeholders for my own model Release, which does not exist yet, so the `release` source also fails at the download step.
 
 ```bash
 make lint && make test     # 18 passed locally
@@ -213,7 +213,7 @@ make lint && make test     # 18 passed locally
 
 ## Model Artifacts
 
-Weights are never committed to Git. The GitHub Release [`reference-nanoparse-v1.0`](https://github.com/iamankoo/Cloud-Assignment/releases/tag/reference-nanoparse-v1.0) holds two Pythia-70M archives and their checksum files. **They are externally sourced reference artifacts** from `rahul-singh92/NanoParse` release `v1.0` (author Rahul Singh Jadoun), re-uploaded unmodified. They were **not trained or evaluated in this repository** and are not my training output. See `docs/RELEASE_METADATA.md`.
+Weights are never committed to Git. **This repository currently has no model archives of its own.** The GitHub Release [`reference-nanoparse-v1.0`](https://github.com/iamankoo/Cloud-Assignment/releases/tag/reference-nanoparse-v1.0) is a provenance record only: it once held two Pythia-70M archives from `rahul-singh92/NanoParse` release `v1.0` (author Rahul Singh Jadoun), which I **removed** because permission to redistribute them could not be established. Only the original checksum manifests remain attached. Those archives were never trained or evaluated in this repository and are not my training output. **My own model archives, checksums and evaluation outputs remain outstanding.** See `docs/RELEASE_METADATA.md`.
 
 ## Provenance and AI Use
 
