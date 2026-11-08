@@ -28,6 +28,14 @@ docker image inspect command-parser:v1 --format '{{.Size}}'    # must be <= 2 GB
 
 ## 4. Teacher labelling and cleaning **[NOT RUN]**
 Requires the instructor's `commands_pool.jsonl` in `data/` and Ollama reachable from the cluster.
+
+Start the host Ollama server with these settings (server-side; they are settings, not a record of a run):
+```bash
+export OLLAMA_HOST=0.0.0.0        # listen on all interfaces so pods in k3d can reach it (default is localhost only)
+export OLLAMA_NUM_PARALLEL=2      # two concurrent requests, one per labelling worker
+ollama serve
+```
+The worker Job reaches it through `OLLAMA_HOST=http://host.k3d.internal:11434` (a client-side URL set in `k8s/worker-job.yaml`; the same variable name, but a different meaning from the server setting above).
 ```bash
 make up
 python scripts/upload.py --bucket datasets --src data/commands_pool.jsonl --key commands_pool.jsonl
