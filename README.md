@@ -7,6 +7,13 @@ It documents all seven tasks: what is built and tested, and the full methodology
 No training, labelling, Docker build, cluster deployment, CI run or load test has been performed, so no such results appear here.
 No `final` tag exists.
 
+> **Submission snapshot (2026-11-09).** Finished for this snapshot: documentation for all seven tasks (this README, the study guide, the report),
+> the FastAPI service and its tests, the Kubernetes manifest, the subnet plan and NACL with local tests, the CI workflow file, and the scanned
+> handwritten reflection ([`reflection/230103030-cloud-computing.pdf`](reflection/230103030-cloud-computing.pdf)).
+> **Pending, to be done next (not yet run, so no results are claimed):** teacher labelling (Task 1), Pythia-70M training and evaluation (Task 2),
+> Docker build and cluster deployment (Tasks 3-4), a CI run with the model gate (Task 6), and load/cost measurements (Task 7).
+> Local checks re-run on 2026-11-09: 9 tests passed, pyflakes clean, own NACL evaluator 11/11.
+
 Documents: [`docs/STUDY_GUIDE.md`](docs/STUDY_GUIDE.md) (task-by-task explanation, maths, algorithms, procedures, result placeholders) ·
 [`report/report.pdf`](report/report.pdf) (technical report) · [`AI_USE.md`](AI_USE.md).
 
