@@ -85,7 +85,7 @@ ZIP_TABLE = """## Repository Structure (submission ZIP layout)
 | `results/` | Logs of what was actually run |
 | `report/`, `reflection/` | Technical report and handwritten reflection |
 
-The GitHub repository uses a different layout (`service/`, `worker/`, `tools/`, `scripts/`, `cluster/` at top level). In this ZIP all paths in the
+The GitHub repository uses a different layout (directories `service`, `worker`, `tools`, `scripts` and `cluster` at top level). In this ZIP all paths in the
 text files were rewritten to the layout above, and the Makefile is run as `make -f docs/Makefile <target>` from the ZIP root.
 The tests were re-run in this layout (`results/zip_layout_tests.txt`).
 
@@ -172,8 +172,12 @@ def main():
     run([sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider"], "pytest")
     run([sys.executable, "network/nacl_eval.py", "network/nacl.json", "network/packets_own.jsonl"], "nacl")
     run([sys.executable, "network/subnet_calc.py"], "subnets")
+    bash = next((b for b in ("C:/Program Files/Git/bin/bash.exe", "/usr/bin/bash", "/bin/bash") if pathlib.Path(b).exists()), None)
     for sh in stage.rglob("*.sh"):
-        run(["bash", "-n", str(sh.relative_to(stage))], f"bash -n {sh.name}")
+        if bash:
+            run([bash, "-n", str(sh.relative_to(stage)).replace("\\", "/")], f"bash -n {sh.name}")
+        else:
+            log.append(f"bash not found; syntax check of {sh.name} skipped\n")
     (stage / "results" / "zip_layout_tests.txt").write_text("Run inside the staged ZIP layout by scripts/build_submission.py\n\n" + "\n".join(log), encoding="utf-8")
 
     # remove build junk
