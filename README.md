@@ -48,7 +48,7 @@ commands_pool.jsonl (3,000) --upload--> SeaweedFS [datasets]
 | 4 Kubernetes | 22 | Manifest **IMPLEMENTED**; fields **TESTED** as YAML only; **never applied** | `k8s/app.yaml`, `tests/test_all.py` |
 | 5 Networking | 10 | **IMPLEMENTED + TESTED** with my own evaluator; instructor's `nacl_sim.py` not run | `network/`, `results/nacl_eval_local.txt`, `results/subnet_calc_local.txt` |
 | 6 CI/CD | 10 | Partial: workflow, Makefile, 9 tests, AI_USE written; **no CI run**; no Release gate; no `make up` | `.github/workflows/ci.yml` |
-| 7 Performance, cost, review | 12 | **Done** | Verified |
+| 7 Performance, cost, review | 12 | **Not done** (method and placeholders only; no load test, cost or SLO measurement exists) | none |
 
 Tested locally on 2026-11-08 (Python 3.10, Windows): `pytest` 9 passed; `pyflakes` clean; own NACL evaluator 11 of 11 as expected; subnet script reproduces `network/subnets.md`.
 
