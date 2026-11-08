@@ -6,3 +6,4 @@
 - **Not done by AI or me:** no teacher labelling, no training, no cluster, no load test. No results for those exist.
 - No code or results were copied from another student's repository.
 - The handwritten reflection will be written by me personally.
+- The study guide, README and report methodology sections (2026-11-08, late) were also written by Claude Code. The structure of another student's public repository (ABHISHEK27Y/CS3081-CLOUD-PROJECT) was consulted earlier only to see what documentation depth is expected; none of its code, text, numbers or results were copied. Result cells without a measurement are marked PLACEHOLDER.
