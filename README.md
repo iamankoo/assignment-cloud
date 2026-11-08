@@ -1,96 +1,340 @@
-# CS3081 Cloud Computing Mini Project: Command-Parser Knowledge Distillation on a Local Cloud
+# Cloud-Assignment
 
-**Aniket Raj** · Roll no. 230103030 · GitHub `iamankoo` · aniketraj00384@gmail.com
+**Cloud-Assignment** is a lightweight natural-language command parser that converts user instructions into structured JSON. It uses knowledge distillation to fine-tune a compact Pythia-70M student model using teacher-generated training data, then serves the model through a containerised FastAPI application deployed on Kubernetes.
 
-This is an independent, **incomplete** implementation (started from an empty repository, no copied history, code or results).
-It documents all seven tasks: what is built and tested, and the full methodology for what is not yet run.
-No training, labelling, Docker build, cluster deployment, CI run or load test has been performed, so no such results appear here.
-No `final` tag exists.
+**Aniket Raj** · Roll No. 230103030 · GitHub: [iamankoo](https://github.com/iamankoo) · Email: aniketraj00384@gmail.com · CS3081 Cloud Computing Mini Project
 
-> **Submission snapshot (2026-11-09).** Finished for this snapshot: documentation for all seven tasks (this README, the study guide, the report),
-> the FastAPI service and its tests, the Kubernetes manifest, the subnet plan and NACL with local tests, the CI workflow file, and the scanned
-> handwritten reflection ([`reflection/230103030-cloud-computing.pdf`](reflection/230103030-cloud-computing.pdf)).
-> **Pending, to be done next (not yet run, so no results are claimed):** teacher labelling (Task 1), Pythia-70M training and evaluation (Task 2),
-> Docker build and cluster deployment (Tasks 3-4), a CI run with the model gate (Task 6), and load/cost measurements (Task 7).
-> Local checks re-run on 2026-11-09: 9 tests passed, pyflakes clean, own NACL evaluator 11/11.
-
-Documents: [`docs/STUDY_GUIDE.md`](docs/STUDY_GUIDE.md) (task-by-task explanation, maths, algorithms, procedures, result placeholders) ·
-[`report/report.pdf`](report/report.pdf) (technical report) · [`AI_USE.md`](AI_USE.md).
-
-Legend: **IMPLEMENTED** = file exists · **TESTED** = run locally, log in `results/` · **METHOD** = described, not executed · **PLACEHOLDER** = no measurement yet.
-Several commands in the guide name scripts that do not exist yet (`worker/clean.py`, `training/train.py`, `scripts/upload_pool.py`, ...). They are planned, not present.
-
-## 1. Architecture
+## Architecture
 
 ```text
-commands_pool.jsonl (3,000) --upload--> SeaweedFS [datasets]
-        |  Indexed Job, 2 pods, shard = index mod 2
-        v
- Ollama + Phi-3.5 (teacher) -> shard-0/1.jsonl -> clean.py -> train.jsonl (+SHA-256)
-        |  first 1,500 records
-        v
- Pythia-70M fine-tune (sequence-level KD) -> model v1, v2 (+SHA-256)
-        |                                        |
-   GitHub Release                         SeaweedFS [models]
-        v                                        v
- FastAPI pods (ns app, 2 replicas) --download at start-up
+Natural Language Input
         |
- Service :80 -> Traefik Ingress -> POST /parse        HPA 1..2 @ 70% CPU
+        v
+   FastAPI Service
+        |
+        v
+Fine-tuned Pythia-70M
+        |
+        v
+JSON Validation
+        |
+        v
+Structured Response
+
+Model Storage: SeaweedFS (S3-compatible)
+Orchestration: Kubernetes (k3d)
+Scaling: Horizontal Pod Autoscaler
+Monitoring: Locust and kubectl metrics
 ```
 
-## 2. Status by task
+## Technology Stack
 
-| Task | Marks | State | Evidence |
-|---|---:|---|---|
-| 1 Object storage + parallel teacher labelling | 12 | **Not done** (no kit data, no Ollama, no cluster) | none |
-| 2 Student training (Pythia-70M) | 20 | **Not done** | none |
-| 3 Inference service | 14 | **IMPLEMENTED + TESTED with a stub model.** Dockerfile written, **not built**; image size and 50-request test not measured | `service/`, `results/pytest_local.txt` |
-| 4 Kubernetes | 22 | Manifest **IMPLEMENTED**; fields **TESTED** as YAML only; **never applied** | `k8s/app.yaml`, `tests/test_all.py` |
-| 5 Networking | 10 | **IMPLEMENTED + TESTED** with my own evaluator; instructor's `nacl_sim.py` not run | `network/`, `results/nacl_eval_local.txt`, `results/subnet_calc_local.txt` |
-| 6 CI/CD | 10 | Partial: workflow, Makefile, 9 tests, AI_USE written; **no CI run**; no Release gate; no `make up` | `.github/workflows/ci.yml` |
-| 7 Performance, cost, review | 12 | **Not done** (method and placeholders only; no load test, cost or SLO measurement exists) | none |
+- **Model:** EleutherAI/Pythia-70M
+- **Teacher:** Ollama Phi-3.5
+- **ML Framework:** PyTorch and Transformers
+- **API:** FastAPI and Uvicorn
+- **Object Storage:** SeaweedFS
+- **Containerisation:** Docker
+- **Orchestration:** Kubernetes using k3d
+- **Deployment:** Helm
+- **Load Testing:** Locust
+- **CI/CD:** GitHub Actions and Gitleaks
 
-Tested locally on 2026-11-08 (Python 3.10, Windows): `pytest` 9 passed; `pyflakes` clean; own NACL evaluator 11 of 11 as expected; subnet script reproduces `network/subnets.md`.
+## Repository Structure
 
-## 3. Task summaries (full detail in the study guide)
+| Directory | Purpose |
+|---|---|
+| `data/` | Validation data and schema |
+| `datasets/` | Cleaned training datasets |
+| `worker/` | Teacher generation and data cleaning |
+| `training/` | Student model training configuration and scripts |
+| `models/` | Model release metadata and local model artifacts |
+| `service/` | FastAPI application and Dockerfile |
+| `cluster/` | k3d and SeaweedFS configuration |
+| `k8s/` | Kubernetes Deployment, Service, Ingress and HPA |
+| `network/` | Subnet design and network ACL simulation |
+| `tools/` | Evaluation, prediction, scoring and load-testing tools |
+| `scripts/` | Deployment, teardown and model-upload scripts |
+| `tests/` | Unit tests |
+| `results/` | Experimental and assignment evidence |
 
-**Task 1.** Command pool to SeaweedFS (`datasets`, `models` buckets); Indexed Job with 2 pods labels shard `i = index mod 2` using Phi-3.5 through Ollama; cleaning keeps records with valid JSON, exact four keys, one of eight intents, slot values present in the text, no duplicates; report counts and SHA-256. Identity to check: input = kept + rejected. **METHOD only.**
+## Requirements
 
-**Task 2.** Sequence-level distillation: cross-entropy on the teacher's output sequence, `L = -sum_t log p(y*_t | x, y*_<t)`, prompt tokens masked. Pythia-70M, first 1,500 cleaned records, config in `training/config.yaml`, `make train` and `make train SUBSET=50`, versions v1/v2, checksums, Release assets, evaluation of teacher / untrained / trained student with `score.py`. **METHOD only.**
+- Docker
+- k3d
+- kubectl
+- Helm
+- Python 3.12 or compatible environment for the training and tooling workflow
+- Make
+- Locust for load testing
 
-**Task 3.** FastAPI `POST /parse`, `GET /healthz`, `GET /readyz`; headers `X-Model-Version`, `X-Served-By`; every output validated against `service/schema.json`, else HTTP 500 `invalid_model_output`; `FAULT_INJECT=1` forces `not json`. Model downloaded from S3 at start-up. Dockerfile: CPU-only torch, pinned deps, no weights. **IMPLEMENTED; 5 service tests pass; image not built.**
+The deployment script creates `.venv-deploy` automatically for model-upload dependencies.
 
-**Task 4.** `k8s/app.yaml`: namespace `app`, Deployment (2 replicas, requests 250m/512Mi, limits 1 CPU/1Gi, liveness `/healthz`, readiness `/readyz`, RollingUpdate maxUnavailable 0), Service, Ingress, HPA min 1 max 2 at 70%. HPA rule: `desired = ceil(current * utilisation / target)`. Rollout, rollback, recovery and cold-start procedures are in the guide. **Manifest only.**
+## Setup
 
-**Task 5.** 10.20.0.0/16 split: app 10.20.0.0/22, public 10.20.4.0/24, data 10.20.5.0/25, management 10.20.5.128/27 (`network/subnets.md`). NACL in `network/nacl.json`: deny 198.51.100.0/24 first (rule 100), allow 80/443, SSH only from management, ephemeral replies in both directions, default deny. **IMPLEMENTED + TESTED.**
-
-**Task 6.** CI: pyflakes, pytest, gitleaks. Planned gate: `score.py --min-validity 95` on the Release model, shown failing with the untrained model. **Partly implemented, never run.**
-
-**Task 7.** Locust (4 users, 2 min), p50/p95, throughput, error rate, CPU/memory, cold start, cost per 1,000 requests = hourly cost / (throughput x 3600) x 1000, SLO and error budget, six-row review table. **METHOD only; all numbers are placeholders.**
-
-## 4. Prerequisites and commands
-
-Needs (not all present on the machine used): Python 3.11, Docker, k3d, kubectl, GNU Make, GitHub CLI, Ollama with `phi3.5`, Locust.
+Clone the repository:
 
 ```bash
-pip install fastapi httpx pydantic jsonschema pyyaml pytest pyflakes boto3
-make test        # 9 tests                         [TESTED]
-make lint        # pyflakes                         [TESTED]
-make nacl        # own NACL evaluator, 11 packets   [TESTED]
-make subnets     # subnet table                     [TESTED]
+git clone https://github.com/iamankoo/Cloud-Assignment.git
+cd Cloud-Assignment
 ```
 
-Not implemented yet (METHOD in the study guide): `make up` (cluster + build + deploy), `make train`, `make label`, `make eval`, `make load`.
-`make down` runs `k3d cluster delete cloud-assignment`, which only works once a cluster of that name exists.
+Create and activate a Python environment:
 
-## 5. Model storage
-Weights are never committed (`.gitignore` excludes `models/`, `*.safetensors`, `*.bin`). The plan is: upload to the SeaweedFS `models` bucket, attach archives and SHA-256 files to a GitHub Release; the service downloads from `MODEL_URI` at start-up using credentials from a Kubernetes Secret. **No model exists yet.**
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
 
-## 6. Repository layout
-`service/` API + Dockerfile + schema · `k8s/` manifests · `network/` subnets, NACL, packets · `tools/nacl_eval.py` · `scripts/subnet_calc.py` · `tests/` · `results/` local logs only · `report/` · `docs/STUDY_GUIDE.md` · `.github/workflows/ci.yml`.
+Install the service dependencies if running locally:
 
-## 7. Cleanup
-`make down` (after a cluster exists). Nothing else is installed by this repository.
+```bash
+pip install -r service/requirements.txt
+```
 
-## 8. Not verified
-Docker build and size, any cluster behaviour, real-model inference, Locust, gitleaks, CI, cost, SLO, instructor's `score.py` / `nacl_sim.py`, and everything in Tasks 1, 2 and 7.
+## Model Training
+
+The student model is based on EleutherAI/Pythia-70M.
+
+Training configuration:
+
+- Maximum training samples: 1,500
+- Epochs: 3
+- Batch size: 4
+- Learning rate: 0.00005
+- Maximum sequence length: 256
+- Optimisation: AdamW weight decay 0.01
+- Execution device: CPU
+- Random seed: 42
+
+Train v1:
+
+```bash
+make train SUBSET=0 VERSION=v1
+```
+
+Train an experimental v2:
+
+```bash
+make train SUBSET=0 VERSION=v2
+```
+
+The optional `--data` argument can select a different training dataset:
+
+```bash
+python training/train.py --version v2 --data datasets/v2/train.jsonl
+```
+
+Training outputs are stored under `training/output/` and are excluded from Git.
+
+## Evaluation
+
+Generate predictions and evaluate the model using the provided tools:
+
+```bash
+python tools/score.py \
+  results/student_predictions.jsonl \
+  data/validation.jsonl \
+  --out results/student_validation.json
+```
+
+The evaluator measures:
+
+- JSON validity
+- Intent accuracy
+- Date accuracy
+- Time accuracy
+- Place accuracy
+- Full-frame accuracy
+
+## Deployment
+
+Deploy the production v1 model:
+
+```bash
+make up MODEL_VERSION=v1
+```
+
+Deploy the experimental v2 model:
+
+```bash
+make up MODEL_VERSION=v2
+```
+
+The deployment script:
+
+1. Creates the k3d cluster if required.
+2. Installs SeaweedFS through Helm.
+3. Downloads the selected model archive from the GitHub Release.
+4. Uploads the model to S3-compatible storage.
+5. Builds and imports the application Docker image.
+6. Deploys the Kubernetes resources.
+7. Waits for the application rollout.
+
+API endpoint:
+
+```text
+http://localhost:8080/parse
+```
+
+## API Usage
+
+Send a POST request:
+
+```bash
+curl -X POST http://localhost:8080/parse \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Set an alarm for 7 am"}'
+```
+
+The service returns structured JSON containing:
+
+```json
+{
+  "intent": "alarm_set",
+  "date": null,
+  "time": "seven am",
+  "place": null
+}
+```
+
+The exact prediction depends on model output.
+
+Health endpoints:
+
+- `GET /healthz` — process health
+- `GET /readyz` — model readiness
+- `POST /parse` — command parsing
+
+Successful responses include `X-Model-Version` and `X-Served-By` headers.
+
+## Kubernetes and Load Testing
+
+The Kubernetes deployment uses two replicas during the assignment load test, with an HPA configured for CPU-based scaling.
+
+Run the standard Locust test:
+
+```bash
+locust -f tools/locustfile.py \
+  --headless \
+  --users 4 \
+  --spawn-rate 4 \
+  --run-time 2m \
+  --host http://localhost:8080 \
+  --csv results/task7/loadtest
+```
+
+Monitor resource utilisation:
+
+```bash
+kubectl top pods -n app
+```
+
+Inspect the deployment:
+
+```bash
+kubectl get pods -n app
+kubectl get services -n app
+kubectl get hpa -n app
+```
+
+## Network Configuration
+
+The `network/` directory contains:
+
+- Subnet allocation and CIDR design
+- Inbound and outbound network ACL rules
+- ACL explanation
+- Sample packets for simulation
+
+Run the ACL tests:
+
+```bash
+python tools/nacl_sim.py \
+  network/nacl.json \
+  network/packets_sample.jsonl \
+  --check
+```
+
+## Automated Testing and CI
+
+GitHub Actions runs the following stages:
+
+1. Python compilation and Ruff lint checks
+2. Unit tests
+3. Model evaluation using the released v1 artifact
+4. Gitleaks secret scanning
+
+The manual workflow also supports evaluation of an untrained model and enforces a 95% JSON-validity quality gate.
+
+Run unit tests locally:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+## Experimental Results
+
+The following figures are retained from the supplied reference material. They must be replaced with independently measured results before being presented as results of Cloud-Assignment.
+
+| Metric | Reference result |
+|---|---:|
+| JSON validity | 90% |
+| Intent accuracy | 75% |
+| Date accuracy | 68% |
+| Time accuracy | 76% |
+| Place accuracy | 77% |
+| Full-frame accuracy | 41% |
+
+A separate v2 reference experiment achieved 89% JSON validity and 42% full-frame accuracy. These are not verified Cloud-Assignment results.
+
+### Task 7 Load Test
+
+The following is the reference project's standard two-minute Locust test using four concurrent users.
+
+| Metric | Reference result |
+|---|---:|
+| Requests | 89 |
+| Successful requests | 78 |
+| Failed requests | 11 |
+| Error rate | 12.36% |
+| Median latency | 3,700 ms |
+| p95 latency | 16,000 ms |
+| Throughput | 0.748 requests/sec |
+
+The two reference replicas served 41 and 37 successful requests respectively.
+
+The reference p95 latency and error rate do not meet the assignment targets of 5 seconds and 1%. Resource samples showed CPU peaks close to 1 core per pod, while peak memory remained below 560 MiB per pod.
+
+These figures are reference information, not measurements from this repository.
+
+## Model Artifact
+
+Model archives are distributed through GitHub Releases rather than committed to the repository.
+
+The assignment requires the model archive, tokenizer, version information and checksums to be published as Release assets.
+
+## AI Use and Responsible Development
+
+See [AI_USE.md](AI_USE.md) for details about AI-assisted development, teacher-generated data, human oversight, validation and known limitations.
+
+## Cleanup
+
+Delete the local Kubernetes cluster and its resources:
+
+```bash
+make down
+```
+
+## Limitations and Future Improvements
+
+- Improve JSON validity and full-frame prediction accuracy.
+- Reduce CPU inference latency and improve throughput.
+- Improve reliability under concurrent requests.
+- Evaluate multi-node Kubernetes deployment and replicated storage.
+- Expand validation coverage and test recovery under failure conditions.
+- Use production-grade secret management and TLS for external deployment.
+
+## Project Repository
+
+[https://github.com/iamankoo/Cloud-Assignment](https://github.com/iamankoo/Cloud-Assignment)
