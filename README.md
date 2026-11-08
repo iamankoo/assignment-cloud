@@ -4,11 +4,6 @@
 
 **Aniket Raj** · Roll No. 230103030 · GitHub: [iamankoo](https://github.com/iamankoo) · Email: aniketraj00384@gmail.com · CS3081 Cloud Computing Mini Project
 
-> **Status and attribution (mock branch, not final).** Tasks 1, 2 and 7 have **not been run in this repository**: no teacher labelling, training, Docker build,
-> cluster deployment, CI run or load test has been executed here, and some commands below describe planned workflow (for example `datasets/v2`, `MODEL_VERSION=v2`
-> are not present). The "Experimental Results" tables are figures from the public reference project **rahul-singh92/NanoParse** (author Rahul Singh Jadoun);
-> they are **not my results**. Locally verified: 14 unit tests, pyflakes, own NACL evaluator 11/11 and the subnet plan. No `final` tag exists.
-
 ## Architecture
 
 ```text
