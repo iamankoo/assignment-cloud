@@ -11,7 +11,7 @@ It separates what is done from what still needs execution; it is not a claim tha
 - DONE Stub-model API demonstration (`results/demo_api_stub.txt`) and Locust toolchain smoke test (`results/stub_smoke_*`), clearly labelled as not performance results.
 - DONE Worked cost and SLO examples with hypothetical inputs (`results/cost_slo_worked_examples.txt`).
 - DONE Handwritten reflection present as `reflection/230103030.pdf` (3 pages; name, roll number, repo link). Reflection figures kept as **reported, unverified** (`results/REPORTED_FIGURES.md`); cost arithmetic mismatch (3.85 vs 3.95) flagged.
-- DONE Releases audited (`docs/RELEASE_METADATA.md`): one Release only (`v1.0`, Latest) with the source ZIP and checksum; no model archives; external checksums preserved in `docs/release_checksums/`; obsolete releases/tags removed.
+- DONE Release: one Release only (latest) with the source ZIP and checksum; no model archives (`docs/RELEASE_METADATA.md`).
 - DONE Security checks: no secrets, `.env`, weights or temp files in the repository or ZIP (build-script pattern scan; gitleaks itself not run).
 
 ## B. Outstanding assignment requirements (nothing below has been run; no evidence exists)
@@ -28,9 +28,9 @@ It separates what is done from what still needs execution; it is not a claim tha
 ## C. Personal actions (only you can do these)
 1. YOU Decide how to handle the reflection: provide the real logs for its reported figures, or edit it. Resolve the cost discrepancy (3.85 vs 3.95 per 1,000 requests).
 2. YOU The reflection says "zero dropped connections", that network policies were updated and that the system is "reliable, cost-efficient and scalable"; nothing in the repository supports these. Confirm or revise.
-3. YOU Redistributing the other author's model archives needs their written permission (the source has no licence file); they are not your training output.
+3. YOU Publish your own v1/v2 archives and checksums in the Release after training and evaluation (`make package`).
 4. YOU Add the instructor's kit files so the evaluation and gate jobs can run.
 5. YOU Run the pipeline on a machine with Docker, k3d, kubectl and Ollama for real results for Tasks 1–4 and 7, then add the outputs to `results/`.
 6. YOU Upload the ZIP to the college portal. Exact names: `230103030.zip`, `230103030.pdf`.
 7. YOU The earlier annotated tag `final` was **not** moved by this cleanup. Only the commit tagged `final` is assessed in the real submission: when you are ready, move it deliberately (never force-pushed by the assistant) and rebuild the ZIP with `python scripts/build_submission.py --out-dir <dir> --require-tag final`.
-8. YOU Confirm your instructor's policy on reusing public reference material before the graded submission.
+8. YOU Confirm your instructor's policy on reusing public reference material before the graded submission (see `docs/PROVENANCE.md`).

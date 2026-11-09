@@ -4,9 +4,7 @@ Author: Aniket Raj (230103030). Written for understanding and for preparing the 
 
 **Accuracy rule used throughout.** Text marked **[IMPLEMENTED]** exists in this repository. **[TESTED]** means it was run and the
 log is in `results/`. **[METHOD]** means the procedure is described but was *not* executed. **[NOT RUN]** means no measurement exists yet; the section then
-gives the evaluation procedure and, where useful, a labelled example. Evidence classes used in the tables: **actual** (run here, log in `results/`),
-**calculated** (arithmetic), **illustrative** (hypothetical inputs), **reference** (published by another student, `rahul-singh92/NanoParse`, context only, not my result),
-**reported** (my handwritten reflection, unverified). Expected outcomes are theory, never results. Nothing in the "Results" sections is a measurement of this project unless it cites a file in `results/`.
+gives the evaluation procedure and, where useful, a labelled example. Evidence classes used in the tables: **actual** (produced by executing project code, log in `results/`), **calculated** (reproducible mathematical calculation), **illustrative** (example used to explain a method), **reported** (recorded in the project reflection), **planned** (not yet executed). Expected outcomes are theory, never results. Nothing in the "Results" sections is a measurement of this project unless it cites a file in `results/`.
 
 ---
 
@@ -78,18 +76,18 @@ sha256sum datasets/v1/train.jsonl
 **Results [NOT RUN for the real data].** The shard property and the counting identity are tested on synthetic and toy data (`tests/test_pipeline.py`, 32 tests pass: `results/pytest_local.txt`).
 A real run needs the instructor's `commands_pool.jsonl` and Ollama. For orientation, the table shows what a filled table looks like.
 
-| Quantity | This project | Toy unit test (illustrative, actual run of the test) | Reference run (NanoParse, not mine) |
-|---|---|---|---|
-| Input records | not run | 6 | 3,000 |
-| Rejected: invalid JSON (a) | not run | 1 | 1 |
-| Rejected: wrong keys (b) | not run | 1 | 57 |
-| Rejected: bad intent (c) | not run | 1 | 610 (invalid slots; categories not split) |
-| Rejected: invented slot (d) | not run | 1 | (included above) |
-| Duplicates (e) | not run | 1 | 40 |
-| Kept | not run | 1 | 2,292 |
-| Identity input = sum of the rest | by construction, asserted in tests | 6 = 1+1+1+1+1+1 | 3000 = 1+57+610+40+2292 |
-| Records per shard | 1,500 / 1,500 expected (calculated: n mod 2) | n/a | n/a |
-| SHA-256 of `train.jsonl` | produced by `clean.py` (not run on real data) | tested: digest equals the SHA-256 of the output file | n/a |
+| Quantity | This project (real data) | Toy unit test (illustrative; actual run of the test) |
+|---|---|---|
+| Input records | planned | 6 |
+| Rejected: invalid JSON (a) | planned | 1 |
+| Rejected: wrong keys (b) | planned | 1 |
+| Rejected: bad intent (c) | planned | 1 |
+| Rejected: invented slot (d) | planned | 1 |
+| Duplicates (e) | planned | 1 |
+| Kept | planned | 1 |
+| Identity input = sum of the rest | by construction, asserted in tests | 6 = 1+1+1+1+1+1 |
+| Records per shard | 1,500 / 1,500 expected (calculated: n mod 2) | n/a |
+| SHA-256 of `train.jsonl` | produced by `clean.py` (planned run) | tested: digest equals the SHA-256 of the output file |
 
 **Interpretation to write once measured.** Which rule rejects most? A high "invented slot" count means the teacher paraphrases; a better prompt or examples would reduce it. Wall-clock should be close to half the single-worker time only if Ollama is not the shared bottleneck on one CPU.
 
@@ -134,15 +132,12 @@ sha256sum training/output/v1/model.safetensors
 
 **Results [NOT RUN].** No model was trained or scored here (no labelled data; `transformers` not installed on the machine used). `train.py` writes `training/loss.csv` (one value per epoch) and `run_info.json`;
 `config.yaml` records seed, learning rate, batch size, epochs, max length and the library versions (tested: `test_training_config_records_required_items`).
-For orientation, the published run of another student (reference, not mine) on the same 100-command validation task:
-
 | Model | JSON validity | Intent | Date | Time | Place | Full frame |
 |---|---|---|---|---|---|---|
-| Teacher Phi-3.5 (reference) | 94 | 85 | 71 | 79 | 81 | 44 |
-| Untrained Pythia-70M (reference; file of zeros) | 0 | 0 | 0 | 0 | 0 | 0 |
-| Student v1 (reference) | 90 | 75 | 68 | 76 | 77 | 41 |
-| Student v2 (reference) | 89 | 76 | 69 | 79 | 71 | 42 |
-| **My teacher / untrained / v1 / v2** | not run | not run | not run | not run | not run | not run |
+| Teacher Phi-3.5 | planned | planned | planned | planned | planned | planned |
+| Untrained Pythia-70M | planned | planned | planned | planned | planned | planned |
+| Student v1 | planned | planned | planned | planned | planned | planned |
+| Student v2 | planned | planned | planned | planned | planned | planned |
 
 The assignment's own scoring example (V001-V004) gives validity 75, intent 50, date 50, time 75, place 75, full-frame 25 (calculated by hand from the specification).
 
@@ -186,7 +181,7 @@ curl -s -X POST localhost:8000/parse -H 'content-type: application/json' -d '{"t
 **Testing.** [TESTED] 5 unit tests with an injected stub generator: success and headers, invalid intent, extra key, fault injection, health/readiness (`tests/test_all.py`; the whole suite, 32 tests, passes: `results/pytest_local.txt`). `tools/demo_server.py` additionally runs the *real* app with a stub generator: `/healthz` 200, `/readyz` 200, a valid `/parse` with both headers, and `FAULT_INJECT=1` giving HTTP 500 `{"error":"invalid_model_output"}` (`results/demo_api_stub.txt`). A 20 s Locust run against the stub (209 requests, 0 failures) proves only the toolchain, not service performance.
 
 **Results [NOT RUN].** The Docker daemon was not available, so image size, the 50-request test and peak memory have not been measured. Procedure: the commands above plus `docker inspect -f '{{.State.OOMKilled}}'`.
-Calculated: fp32 weights are about 70.4 M x 4 B = 0.28 GB, which is why they are fetched from object storage. Reference (another student, ARM64, Python 3.12, not mine): image about 1.66 GB, peak memory about 737 MiB, no OOM kill.
+Calculated: fp32 weights are about 70.4 M x 4 B = 0.28 GB, which is why they are fetched from object storage.
 
 **Limitations.** Not built or run with a real model. The stub tests cannot detect a prompt/training mismatch or an out-of-memory failure.
 
@@ -223,13 +218,13 @@ kubectl -n app rollout undo deploy/command-parser
 
 **Results [NOT RUN].** No cluster was available, so nothing was applied. Each experiment and its acceptance criterion:
 
-| Experiment | Acceptance criterion | This project | Reference (not mine) / reported |
+| Experiment | Acceptance criterion | This project | Reported (reflection) |
 |---|---|---|---|
-| Load balancing, 2 Ready replicas | each replica at least 30% of successes | not run | reference 41 / 37 successes; my reflection reports 53.4% / 46.6% (unverified) |
-| Rolling update v1 to v2 under load | at most 0.5% failed | not run | reference reports rollback v2 to v1 worked |
+| Load balancing, 2 Ready replicas | each replica at least 30% of successes | planned | 53.4% / 46.6% (unverified) |
+| Rolling update v1 to v2 under load | at most 0.5% failed | planned | n/a |
 | Rollback | `X-Model-Version` is v1 again | not run | n/a |
 | Pod deletion under load | replica count restored; at most 2% failed | not run | my reflection reports 18.93 s, zero dropped (unverified) |
-| Cold start, 3 runs, median | log shows model download | not run | reference 11 s x3; my reflection reports 18.0 s (unverified) |
+| Cold start, 3 runs, median | log shows model download | planned | 18.0 s (unverified) |
 | HPA 1 to 2 and back | events show both directions | not run | calculated: 2 pods at 140% -> ceil(2*140/70)=4 -> clipped to 2; 20% -> 1 |
 
 The manifest also contains a PodDisruptionBudget (`minAvailable: 1`), an HPA scale-down window of 60 s and a 30 s termination grace period (fields unit-tested).
@@ -271,7 +266,7 @@ Worked check for `app`: log2(1002) = 9.97, ceil = 10, p = 22, block = 1024, usab
 
 **Pipeline design.** `.github/workflows/ci.yml` [IMPLEMENTED, never run]: jobs `lint` -> `unit-tests` -> `evaluate` -> `quality-gate` (the last two are manual `workflow_dispatch` jobs: they download a model from a Release and run `score.py`, then `score.py --min-validity 95`) plus `secret-scan` (gitleaks, full history). The stage order is unit-tested. **Not done:** any run on GitHub, and the deliberately failing run with the untrained model.
 
-**Quality gate logic.** `score.py` exits non-zero if JSON validity < 95; the workflow fails at that step. Demonstration: run once with the untrained Pythia-70M (expected validity near 0%, so the run fails; the link to that run belongs in the report once it exists, **[NOT RUN]**), and once with the trained model (expected to pass only if validity >= 95; the reference student's 90% would not).
+**Quality gate logic.** `score.py` exits non-zero if JSON validity < 95; the workflow fails at that step. Demonstration: run once with the untrained Pythia-70M (expected validity near 0%, so the run fails; the link to that run belongs in the report once it exists, **[NOT RUN]**), and once with the trained model (expected to pass only if validity >= 95).
 
 **Reproducibility.** Pinned dependency versions, fixed seeds, a single config file for training, checksums for datasets and models, `make up` (cluster + build + deploy) and `make down` (delete cluster). `make up` is implemented (`scripts/deploy.sh`) but **not run** (no Docker/k3d on the machine used).
 
@@ -304,7 +299,6 @@ A request fails if it is not HTTP 200 within 30 s.
 - *Calculated:* with the exercise prices (3.50 INR per vCPU-hour, 0.45 per GiB-hour, hypothetical) two 1 vCPU / 1 GiB replicas cost 7.90 INR/hour. Cost per 1,000 requests at a *hypothetical* throughput: 0.25 rps 8.78; 0.50 rps 4.39; 0.57 rps 3.85; 0.75 rps 2.93; 1.00 rps 2.19 (`results/cost_slo_worked_examples.txt`, via `make cost RPS=...`).
 - *Illustrative SLO:* 99% target, N = 1000 gives a budget of 10 requests (7 failures = 70% used, 25 = 250%); N = 254 gives 2.54 (3 failures = 118%) (`make slo REQUESTS=... FAILED=...`).
 - *Actual, but only the toolchain:* a 20 s Locust run against the stub service (209 requests, 0 failures, 11.0 req/s) in `results/stub_smoke_*`. Latency of the stub says nothing about the real service.
-- *Reference (not mine):* another student measured p95 16 s, 12.36% errors, 0.748 req/s and about 2.93 INR per 1,000 requests, i.e. missed both targets; shown only to calibrate expectations.
 - *Reported, unverified:* 2,052 req/h and 3.95 INR per 1,000 in my reflection; 7.90 / 2052 x 1000 = 3.85, so 3.95 does not follow (`results/cost_arithmetic_check.txt`).
 
 **Review table (6 rows).** One row per area (data, model, service, Kubernetes, performance, security/cost) with *measured evidence*, *limitation*, *improvement*. Every evidence cell needs a number with its evidence class; the filled table is in `report/report.pdf` (Task 7).

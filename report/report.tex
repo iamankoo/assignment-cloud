@@ -23,7 +23,6 @@
 \newcommand{\evA}{\textcolor{green!40!black}{\textbf{[A]}}\xspace}
 \newcommand{\evC}{\textcolor{blue!60!black}{\textbf{[C]}}\xspace}
 \newcommand{\evI}{\textcolor{orange!80!black}{\textbf{[I]}}\xspace}
-\newcommand{\evR}{\textcolor{violet!80!black}{\textbf{[R]}}\xspace}
 \newcommand{\evS}{\textcolor{red!70!black}{\textbf{[S]}}\xspace}
 \newcommand{\evP}{\textcolor{gray!70!black}{\textbf{[P]}}\xspace}
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
@@ -41,12 +40,11 @@
 \textbf{Status of this document.} This report describes the complete
 design and implementation for all seven tasks and the procedure for evaluating each one. \textbf{The expensive experiments (teacher labelling, student training, Docker build,
 cluster deployment, load test, CI runs) have not been executed}; no result in this report was fabricated to fill that gap. Every number carries an evidence tag:\\[2pt]
-\evA~\textbf{Actual}: produced by running code in this repository; log in \tc{results/}. \quad
-\evC~\textbf{Calculated}: deterministic arithmetic or derivation, reproducible by a script or test. \quad
-\evI~\textbf{Illustrative}: hypothetical inputs that demonstrate a method; not a measurement. \quad
-\evR~\textbf{Reference}: published by another student (\tc{rahul-singh92/NanoParse}, release v1.0, no licence file); \emph{quoted for context only, not my work and not my result}. \quad
-\evS~\textbf{Student-reported}: from my handwritten reflection, no logs exist, unverified. \quad
-\evP~\textbf{Planned}: written but not executed.}}
+\evA~\textbf{Actual}: produced by executing project code (log in \tc{results/}). \quad
+\evC~\textbf{Calculated}: reproducible mathematical calculation. \quad
+\evI~\textbf{Illustrative}: example used to explain a method. \quad
+\evS~\textbf{Reported}: value recorded in the project reflection; no logs exist. \quad
+\evP~\textbf{Planned}: implementation or experiment not yet executed.}}
 
 \section{Introduction and architecture}
 A fixed JSON ``frame'' with exactly four keys (\tc{intent}, \tc{date}, \tc{time}, \tc{place}) is extracted from a short English command, e.g.\ \emph{``what is the weather in london''} gives
@@ -105,10 +103,9 @@ Because each record is counted once, $N_{\text{in}} = N_{a}+N_{b}+N_{c}+N_{d}+N_
 \begin{tabular}{@{}lccccccc@{}}\toprule
  & input & (a) & (b) & (c) & (d) & duplicates & kept\\\midrule
 Toy example \evI\evA & 6 & 1 & 1 & 1 & 1 & 1 & 1\\
-Reference run \evR & 3{,}000 & 1 & 57 & \multicolumn{2}{c}{610 (invalid slots)} & 40 & 2{,}292\\
 This project, real run & \multicolumn{7}{p{7.4cm}}{\raggedright needs the labelled data of a real run \evP: \tc{make label}, then \tc{make clean-data}; counts go to \tc{results/clean_counts.json}}\\\bottomrule
 \end{tabular}\end{center}
-The reference row satisfies the identity ($1+57+610+40=708$, $3000-708=2292$) \evC, but it is another student's measurement. \textbf{Marking checks to reproduce:} two Job pods with different \tc{SHARD_INDEX}; every id in exactly one shard; re-running
+\textbf{Marking checks to reproduce:} two Job pods with different \tc{SHARD_INDEX}; every id in exactly one shard; re-running
 \tc{clean.py} reproduces the SHA-256 in \tc{train.sha256} (output is written with LF line endings and sorted ids to make this deterministic; tested \evA).
 
 \section{Task 2 --- Student training by sequence-level distillation}
@@ -122,7 +119,7 @@ The second version (v2) differs by one recorded setting (another seed via \tc{--
 
 \textbf{Evaluation protocol.} The instructor's \tc{score.py} is run on \tc{validation.jsonl} (100 commands, never trained on) for three raw-output files: the teacher (\tc{tools/predict_teacher.py}: same prompt file and options as Task 1), the untrained Pythia-70M, and the student.
 Reported: JSON validity, intent/date/time/place accuracy and full-frame. Expected qualitative outcome \evP: the untrained model scores near 0\% validity; the student improves sharply but cannot exceed the teacher's slot accuracy, because it imitates the teacher's \emph{errors} too.
-For orientation only, another student's published run \evR reports teacher / student v1 / student v2 JSON validity of 94\% / 90\% / 89\% and full-frame accuracy of 44\% / 41\% / 42\%; those numbers are not mine and do not predict my result.
+
 The assignment's four-record scoring example (V001--V004) yields validity 75, intent 50, date 50, time 75, place 75 and full-frame 25 \evC (derived by hand from the specification).
 
 \textbf{Sequence-level vs.\ logit-based distillation.} \emph{Sequence-level} distillation (this project) trains the student on the teacher's \emph{generated outputs} as hard targets: the student sees one decoded string per input. \emph{Logit-based} distillation (e.g.\ the TRL distillation trainer) trains the student to
@@ -153,7 +150,7 @@ Size limit: 2\,GB. The fp32 weights alone are about $70.4\text{M}\times4\,\text{
 \tc{tools/demo_server.py} runs the \emph{real} \tc{app.py} with a keyword-rule \textbf{stub} instead of Pythia-70M: \tc{/healthz} returned 200, \tc{/readyz} 200, a valid \tc{/parse} carried both headers, and \tc{FAULT_INJECT=1} gave HTTP 500 with the exact error body \evA (\tc{results/demo_api_stub.txt}).
 A 20\,s Locust run (4 users) against the stub completed 209 requests with 0 failures at 11.0 req/s \evA. This only proves that the Locust file, header counting and CSV output work; it says nothing about the real service \textbf{(stub, not a performance result)}.
 
-\textbf{Still to run} \evP: \tc{docker build -f service/Dockerfile -t command-parser:v1 .}, \tc{docker image inspect command-parser:v1} (size at most 2\,GB), and 50 sequential requests under \tc{docker run --cpus=1 --memory=1g}, sampling \tc{docker stats --no-stream} and checking \tc{State.OOMKilled} is false. For orientation, another student's recorded image was about 1.66\,GB with a peak of about 737\,MiB \evR.
+\textbf{Still to run} \evP: \tc{docker build -f service/Dockerfile -t command-parser:v1 .}, \tc{docker image inspect command-parser:v1} (size at most 2\,GB), and 50 sequential requests under \tc{docker run --cpus=1 --memory=1g}, sampling \tc{docker stats --no-stream} and checking \tc{State.OOMKilled} is false.
 
 \section{Task 4 --- Kubernetes deployment, scaling and reliability}
 \begin{figure}[h]\centering
@@ -184,7 +181,7 @@ PodDisruptionBudget & \tc{minAvailable: 1}: a node drain can never remove the la
 \textbf{Test procedures} \evP, all run while Locust is generating load with a longer \tc{--run-time}: (i) \emph{load balancing} --- with exactly two Ready replicas count \tc{X-Served-By} in \tc{results/loadtest_headers.json}; each replica should serve at least 30\% of the successes; (ii) \emph{rolling update} ---
 \tc{kubectl -n app set env deploy/command-parser MODEL_VERSION=v2 MODEL_URI=s3://models/v2}, target at most 0.5\% failed requests (supported by \tc{maxUnavailable=0} plus readiness gating), then \tc{kubectl rollout undo} and confirm that \tc{X-Model-Version} is v1 again;
 (iii) \emph{recovery} --- delete one Pod under load; the replica count must return to 2 with at most 2\% failures; (iv) \emph{cold start} --- delete all Pods, show the download in the logs, and report the median Pod-creation-to-Ready time over three runs; (v) \emph{HPA} --- watch \tc{kubectl get hpa -w} scale 1 to 2 under load and back.
-\textbf{Limitation (required statement):} the cluster runs on one laptop, so the two ``nodes'' share one machine, one disk and one power supply; this demonstrates Kubernetes self-healing, not fault tolerance across machines. For orientation, another student's recorded cold start was 11\,s in three runs \evR; my reflection reports 18.0\,s \evS (unverified).
+\textbf{Limitation (required statement):} the cluster runs on one laptop, so the two ``nodes'' share one machine, one disk and one power supply; this demonstrates Kubernetes self-healing, not fault tolerance across machines. My reflection reports a cold start of 18.0\,s \evS (unverified).
 
 \section{Task 5 --- Subnetting and network access control}
 \textbf{Allocation} (largest first, contiguous from 10.20.0.0, smallest prefix $p$ with $2^{32-p}-2\ge h$), reproduced by \tc{scripts/subnet_calc.py} and an independent calculation \evA\evC:
@@ -225,7 +222,7 @@ out & 110 & tcp 1024--65535 & 0.0.0.0/0 & allow & replies to clients (ephemeral 
 \textbf{Reproducible build.} \tc{make up} runs \tc{scripts/deploy.sh}: create the k3d cluster, namespaces and Secrets from \tc{.env} (never committed; \tc{.env.example} contains development-only values), deploy SeaweedFS, build and import both images, and apply the manifests. Models must already be in \tc{s3://models}. \tc{make down} deletes the cluster.
 \textbf{Tests} (32 passing \evA): service API (5), sharding, cleaning and cleaning CLI, prompt consistency, training-config completeness, demo server, subnets, NACL, manifest fields, reliability objects, CI stage order, cost and SLO arithmetic.
 \textbf{Quality gate.} \tc{score.py --min-validity 95} exits non-zero below 95\% JSON validity. \emph{Showing the gate working} requires a workflow run with the untrained model (\tc{workflow_dispatch}, \tc{model_source=base}) and its URL in the report \evP; no such run exists.
-Another student's trained model measured 90\% validity \evR and would itself fail the gate --- a reminder that a 70M model without constrained decoding may need more data, prompt changes or grammar-constrained decoding to reach 95\%.
+A 70M model without constrained decoding may need more data, prompt changes or grammar-constrained decoding to reach 95\%.
 \textbf{Security.} Secrets live only in Kubernetes and CI secrets; \tc{.gitignore} excludes weights and \tc{.env}; the submission build script scans every file for common key patterns (0 matches \evA). That scan is not gitleaks, which has not been run \evP. Known limitation: one shared S3 identity for all components.
 
 \section{Task 7 --- Performance, cost, SLO and review}
@@ -233,7 +230,7 @@ Another student's trained model measured 90\% validity \evR and would itself fai
 per-Pod CPU and memory from \tc{kubectl top pods} sampled during the run, and the cold-start median from Task 4. Targets: error rate at most 1\%, p95 at most 5{,}000\,ms.
 
 \textbf{Cost method.} $C_h = r\,(c\,P_{\text{cpu}} + m\,P_{\text{mem}})$ with $r$ replicas billed at their CPU and memory \emph{limits}, and $\text{cost per 1000 req}=C_h / (3600\cdot\text{rps})\times 1000$.
-With the exercise prices (3.50 INR per vCPU-hour, 0.45 INR per GiB-hour; hypothetical, as quoted for the exercise rate card by a reference report and consistent with my reflection's 7.90 INR/h) and 2 replicas of 1 vCPU and 1\,GiB: $C_h = 2(3.50+0.45)=7.90$ INR/h \evC.
+With the exercise prices (3.50 INR per vCPU-hour, 0.45 INR per GiB-hour; hypothetical exercise rates, consistent with my reflection's 7.90 INR/h) and 2 replicas of 1 vCPU and 1\,GiB: $C_h = 2(3.50+0.45)=7.90$ INR/h \evC.
 Figure~\ref{fig:cost} shows how the answer depends on throughput; \textbf{the throughput values are hypothetical, so every cost-per-1000 value below is a worked example \evI, not my service's cost.}
 
 \begin{figure}[h]\centering
@@ -259,16 +256,16 @@ rps & req/h & INR/1000\\\midrule
 \begin{tabularx}{\textwidth}{@{}l Y Y Y@{}}\toprule
 Concern & Evidence (number, type) & Limitation found & Improvement\\\midrule
 Data and storage & 3{,}000 commands split 1{,}500 + 1{,}500 \evC; SeaweedFS 2\,GiB PVC, 1.5\,GiB limit \evA (manifest) & single replica, ReadWriteOnce PVC; an OOM during uploads is reported \evS & replicated volume; multipart uploads\\
-Model quality & no score of my model exists; reference student: 90\% validity, 41\% full-frame \evR & 70M model without constrained decoding; the 95\% gate is not guaranteed & more and cleaner data; JSON-grammar decoding; compare v2\\
-Latency and throughput & stub service: 209 req in 20\,s, 11.0 req/s, p95 16\,ms \evA (framework overhead only); reference service p95 16\,s \evR & the stub excludes inference, so no service latency exists & run the standard test; profile \tc{generate()}; cap \tc{MAX_NEW_TOKENS}\\
-Resource utilisation & requests 250m/512\,Mi, limits 1 CPU/1\,GiB \evA; weights about 0.28\,GB \evC; reference peak 556\,MiB per pod \evR & inference is CPU-bound, so the HPA reacts only near saturation & tune limits from \tc{kubectl top}; quantise\\
+Model quality & no score of my model exists yet (training and scoring not run) \evP; with 100 validation commands one command is 1 percentage point \evC & 70M model without constrained decoding; the 95\% gate is not guaranteed & more and cleaner data; JSON-grammar decoding; compare v2\\
+Latency and throughput & stub service: 209 req in 20\,s, 11.0 req/s, p95 16\,ms \evA (framework overhead only) & the stub excludes inference, so no service latency exists & run the standard test; profile \tc{generate()}; cap \tc{MAX_NEW_TOKENS}\\
+Resource utilisation & requests 250m/512\,Mi, limits 1 CPU/1\,GiB \evA; weights about 0.28\,GB \evC & inference is CPU-bound, so the HPA reacts only near saturation & tune limits from \tc{kubectl top}; quantise\\
 Reliability and recovery & 2 replicas, \tc{maxUnavailable=0}, PDB \tc{minAvailable=1} \evA; reported recovery 18.93\,s \evS & single laptop: no node-failure tolerance & multi-node cluster; pre-hydrated model volume to cut cold start\\
 Security and cost & 0 secret-pattern matches in the ZIP scan \evA; 7.90 INR/h for 2 replicas \evC & shared S3 identity; no TLS; stateless NACL only & per-service credentials, TLS, network policies\\\bottomrule
 \end{tabularx}
 \caption{Six-row review.}
 \end{table}
 
-\section{Student-reported figures (unverified)}
+\section{Reported figures (project reflection, unverified)}
 The following come from my handwritten reflection (\tc{reflection/230103030.pdf}). \textbf{No logs, CSV or command output exist in this project for them, and none were created.} They are shown as reported \evS and must not be read as measurements.
 \begin{center}\small\begin{tabularx}{\textwidth}{@{}l l Y@{}}\toprule
 Item & Reported & Status\\\midrule
@@ -281,11 +278,9 @@ Cost per 1{,}000 requests & 3.95 INR & \textbf{arithmetic mismatch}: $7.90/2052\
 3.95 would correspond to 2{,}000 req/h or to the hourly cost of one replica ($7.90/2$) (\tc{results/cost_arithmetic_check.txt}); the discrepancy is flagged for correction rather than silently changed. The reflection also proposes pre-hydrated persistent volumes
 (a shared ReadWriteMany volume, safetensors \tc{mmap}) to cut cold start, and Cilium eBPF network policies in place of stateless NACLs; both are proposals, not tested changes.
 
-\section{Reference material, provenance and AI use}
-The structure of the public NanoParse report (\tc{rahul-singh92/NanoParse}; overview, data and evaluation, deployment, networking, CI, load test, review) was used as a \emph{guide to what a complete report covers}. Its text, code and numbers are not mine; its figures appear here only as clearly tagged \evR context.
-Its release v1.0 contained two Pythia-70M archives. I once re-hosted them in an earlier Release of this repository and later \textbf{removed} that Release and its tag because redistribution permission could not be established (no licence file, no written permission). The \emph{original} checksum manifests are retained for attribution only:
-pythia-70m-v1.tar.gz \tc{3b098817}\ldots\tc{febab47bfe}, pythia-70m-v2.tar.gz \tc{47ce600a}\ldots\tc{14b01117} \evR (full values in \tc{docs/RELEASE_METADATA.md}). No model archive generated by this project exists yet.
-Claude Code (Anthropic) assisted with code, tests, documentation and this report; what it did and how I checked it is in \tc{AI_USE.md}.
+\section{Provenance and AI use}
+Academic provenance and reuse disclosures are in \tc{PROVENANCE.md}; AI-assisted development, human checking and known limits are in \tc{AI_USE.md}.
+Model weights are maintained separately from the Git repository. Model archives and their corresponding checksums will be published in the project Release after training and evaluation; no model archive generated by this project exists yet.
 
 \section{Limitations and next steps}
 \textbf{Not done:} teacher labelling, any training, image build, cluster deployment and every Task 4 and Task 7 measurement, CI runs and the failing-gate run, the instructor's \tc{score.py}, \tc{nacl_sim.py} and kit data (not available to me), and gitleaks.
@@ -322,6 +317,5 @@ Teardown & \tc{make down}\\\bottomrule
 \section*{References}
 {\footnotesize
 Kim and Rush, \emph{Sequence-Level Knowledge Distillation}, EMNLP 2016. Hinton et al., \emph{Distilling the Knowledge in a Neural Network}, 2015. Biderman et al., \emph{Pythia}, ICML 2023. Bastianelli et al., \emph{SLURP}, EMNLP 2020 (CC BY 4.0).
-Kubernetes (Deployments, Probes, HPA, PodDisruptionBudget), k3d, SeaweedFS, FastAPI, Locust, Ollama, AWS VPC Network ACLs and the Google SRE Book (Service Level Objectives) documentation.
-Reference report: R.\ S.\ Jadoun, NanoParse assignment report, \url{https://github.com/rahul-singh92/NanoParse} (context only).}
+Kubernetes (Deployments, Probes, HPA, PodDisruptionBudget), k3d, SeaweedFS, FastAPI, Locust, Ollama, AWS VPC Network ACLs and the Google SRE Book (Service Level Objectives) documentation.}
 \end{document}

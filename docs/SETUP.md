@@ -98,4 +98,4 @@ make down
 ```
 
 ## 9. Model artifacts
-Weights are never committed. The single GitHub Release contains only the source ZIP and its checksum, **no model archives**: the externally sourced archives were removed because redistribution permission could not be established, and this project has not trained a model yet (`make package VERSION=v1` will build the archive and checksum once it has). Your own v1/v2 archives, checksums and Release are still to be produced; see `RELEASE_METADATA.md`.
+Model weights are maintained separately from the Git repository. Model archives and their corresponding checksums will be published in the project Release after training and evaluation (`make package VERSION=v1` builds the archive and checksum). See `RELEASE_METADATA.md`.
