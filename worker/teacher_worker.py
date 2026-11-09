@@ -1,8 +1,8 @@
-"""Teacher labelling worker (Task 1). NOT RUN in this repository yet.
+"""Teacher labelling worker (Task 1). Written and unit-tested for sharding only; NOT RUN against Ollama in this repository.
 
 Reads data/commands_pool.jsonl (local) or s3://datasets/commands_pool.jsonl, keeps the records whose
 position n satisfies n mod SHARD_COUNT == SHARD_INDEX, asks the Ollama teacher for a JSON label, and
-writes datasets/teacher/shard-<i>.jsonl as {"id","text","raw"}. Resumable: finished IDs are skipped.
+writes datasets/teacher/shard-<i>.jsonl as {"id","text","teacher_raw"} (the exact reply, never edited). Resumable: finished IDs are skipped.
 
 Env: SHARD_INDEX (or JOB_COMPLETION_INDEX), SHARD_COUNT, OLLAMA_HOST, TEACHER_MODEL, S3_ENDPOINT,
 DATASETS_BUCKET, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, POOL_PATH (optional local file).
@@ -41,7 +41,7 @@ def ask_teacher(host, model, prompt):
         timeout=600,
     )
     r.raise_for_status()
-    return r.json()["response"].strip()
+    return r.json()["response"]  # stored exactly as generated (assignment: do not edit teacher replies)
 
 
 def load_pool():
@@ -71,7 +71,7 @@ def main():
             if rec["id"] in done:
                 continue
             raw = ask_teacher(host, model, build_prompt(template, rec["text"]))
-            f.write(json.dumps({"id": rec["id"], "text": rec["text"], "raw": raw}) + "\n")
+            f.write(json.dumps({"id": rec["id"], "text": rec["text"], "teacher_raw": raw}) + "\n")
             f.flush()
             if n % 25 == 0:
                 print(f"[shard {i}] {n}/{len(mine)} after {time.time() - t0:.0f}s", flush=True)

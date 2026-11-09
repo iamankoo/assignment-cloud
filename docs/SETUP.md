@@ -6,18 +6,41 @@ Aniket Raj · 230103030 · iamankoo. Status key: **[RAN]** executed locally with
 ```bash
 git clone https://github.com/iamankoo/Cloud-Assignment.git && cd Cloud-Assignment
 python3 -m venv .venv && source .venv/bin/activate
-pip install fastapi httpx pydantic jsonschema pyyaml pytest pyflakes boto3 requests locust
+pip install fastapi uvicorn httpx pydantic jsonschema pyyaml pytest pyflakes boto3 requests locust
 cp .env.example .env        # development-only values; never commit .env
 ```
 Needed for the cluster steps (not available on the machine used so far): Docker, k3d, kubectl, GNU Make, Ollama with `phi3.5`.
 
 ## 2. Test **[RAN]**
 ```bash
-make test        # 18 unit tests passed (results/pytest_local.txt)
+make test        # 29 unit tests passed (results/pytest_local.txt)
 make lint        # pyflakes clean
+make check       # lint + test + nacl + subnets in one go
 make nacl        # own evaluator: 11/11 (results/nacl_eval_local.txt)
 make subnets     # subnet plan (results/subnet_calc_local.txt)
 ```
+
+## 2b. Demonstration without Docker, Kubernetes or a model **[RAN]**
+`tools/demo_server.py` runs the real `service/app.py` with a keyword-rule **stub** instead of Pythia-70M (output: `results/demo_api_stub.txt`).
+```bash
+make demo                                  # terminal 1, http://127.0.0.1:8000
+curl -i localhost:8000/healthz ; curl -i localhost:8000/readyz
+curl -i -X POST localhost:8000/parse -H 'Content-Type: application/json' -d '{"text":"what is the weather in london"}'
+FAULT_INJECT=1 python tools/demo_server.py --port 8001      # then POST /parse -> 500 {"error":"invalid_model_output"}
+locust -f tools/locustfile.py --headless --users 4 --spawn-rate 4 --run-time 20s --host http://localhost:8000 --csv results/stub_smoke
+make cost RPS=0.57                         # example (hypothetical) rate card -> 3.8499 INR per 1,000 requests
+make slo REQUESTS=1000 FAILED=7            # 99% SLO -> budget 10 requests, 70% used
+```
+The stub proves the endpoints, headers, validation and Locust tooling work. It says nothing about model quality, latency or throughput of the real service.
+
+## 2c. What to do when infrastructure is missing
+| Missing | Consequence | Reproducible substitute |
+|---|---|---|
+| Docker daemon | Task 3 image build/size/50-request test not possible | `make demo` (stub) + the commands in section 3 on a machine with Docker |
+| k3d / kubectl cluster | Task 4 and the cluster half of Task 7 not possible | unit tests of manifest fields (`make test`); commands in section 6 |
+| Ollama + `commands_pool.jsonl` | Task 1 labelling not possible | sharding/cleaning logic tested on toy data; `make label` on a capable machine |
+| `transformers` + labelled data | Task 2 training/scoring not possible | config and loop reviewed; `make train SUBSET=50` once data exists |
+| Instructor's `score.py`, `nacl_sim.py` | evaluation/gate jobs cannot run | own NACL evaluator (11/11); add the kit files and trigger the manual CI jobs |
 
 ## 3. Build **[NOT RUN]**
 ```bash
@@ -65,7 +88,8 @@ Rolling update and rollback: `kubectl -n app set env deploy/command-parser MODEL
 ## 7. Load test **[NOT RUN]**
 ```bash
 make load
-python scripts/cost.py --rate-card data/rate_card.json --replicas 2 --cpu 1 --mem-gib 1 --rps <measured>
+python scripts/cost.py --rate-card data/rate_card.json --replicas 2 --cpu 1 --mem-gib 1 --rps <measured>   # the kit's rate card; data/rate_card.example.json is hypothetical
+python scripts/slo.py --requests <n> --failed <f> --target 99
 ```
 
 ## 8. Shutdown **[NOT RUN]**
@@ -74,4 +98,4 @@ make down
 ```
 
 ## 9. Model artifacts
-Weights are never committed. The Release `reference-nanoparse-v1.0` is a provenance record only (the externally sourced archives were removed because redistribution permission could not be established; only checksum manifests remain). Your own v1/v2 archives, checksums and Release are still to be produced; see `RELEASE_METADATA.md`.
+Weights are never committed. The Releases `reference-nanoparse-v1.0` (provenance record) and `mock-demo-v1.0` (mock package) contain **no model archives**: the externally sourced archives were removed because redistribution permission could not be established, and this project has not trained a model yet. Your own v1/v2 archives, checksums and Release are still to be produced; see `RELEASE_METADATA.md`.

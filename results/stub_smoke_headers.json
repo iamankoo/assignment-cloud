@@ -1,0 +1,8 @@
+{
+  "per_replica": {
+    "demo-pod-1": 209
+  },
+  "per_model_version": {
+    "v-stub": 209
+  }
+}

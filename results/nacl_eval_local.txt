@@ -1,3 +1,5 @@
+# Python 3.10.11, 2026-11-09T04:46Z, Windows 11
+$ python tools/nacl_eval.py network/nacl.json network/packets_own.jsonl
 A1 inbound  tcp 443    203.0.113.7      -> allow (rule 120) OK
 A2 inbound  tcp 80     198.51.100.200   -> deny (rule 100) OK
 A3 inbound  tcp 22     10.20.5.130      -> allow (rule 130) OK

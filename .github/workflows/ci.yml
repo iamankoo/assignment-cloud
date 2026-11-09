@@ -1,34 +1,43 @@
 name: CI
+# Stage order (assignment Task 6): lint -> unit tests -> model evaluation -> quality gate; secret scanning runs alongside.
+# STATUS: written but never executed on GitHub. `evaluate` and `quality-gate` are manual-only (workflow_dispatch) because they need
+# (1) this project's OWN model Release (none exists yet) and (2) the instructor's tools/score.py and data/validation.jsonl,
+# which are not in this repository. See docs/RELEASE_METADATA.md.
 on:
   push:
   pull_request:
   workflow_dispatch:
     inputs:
       model_source:
-        description: "release = model archive from a GitHub Release; base = untrained Pythia-70M (shows the quality gate failing)"
+        description: "release = model archive from a GitHub Release of this repository; base = untrained Pythia-70M (shows the quality gate failing)"
         default: release
         type: choice
         options: [release, base]
 env:
-  # PLACEHOLDERS for this project's OWN model Release, which does not exist yet. The `release` source of the manual evaluate job
-  # fails at the download step until such a Release exists (the externally sourced archives were removed; see docs/RELEASE_METADATA.md).
+  # Placeholders for this project's OWN model Release. The `release` source fails at the download step until such a Release exists.
   RELEASE_TAG: model-v1
   RELEASE_ASSET: v1.tar.gz
 jobs:
-  lint-test:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: "3.11"}
-      - run: pip install pyflakes==3.2.0 pytest==8.3.2 fastapi==0.111.1 httpx==0.27.0 pydantic==2.8.2 jsonschema==4.23.0 pyyaml==6.0.2 boto3==1.35.76 requests==2.32.3
+      - run: pip install pyflakes==3.2.0
       - run: python -m pyflakes service tools scripts tests worker training
+  unit-tests:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - run: pip install pytest==8.3.2 fastapi==0.111.1 httpx==0.27.0 pydantic==2.8.2 jsonschema==4.23.0 pyyaml==6.0.2 boto3==1.35.76 requests==2.32.3 uvicorn==0.30.6
       - run: python -m pytest -q
-  # Manual only (workflow_dispatch). WRITTEN BUT NEVER RUN. Needs the instructor's tools/score.py and data/validation.jsonl,
-  # which are not in this repository, so it fails with a clear message until they are added.
   evaluate:
     if: github.event_name == 'workflow_dispatch'
-    needs: lint-test
+    needs: unit-tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -54,16 +63,27 @@ jobs:
             CFG=$(find models/v1 -name config.json | head -1)
             echo "MODEL=$(dirname "$CFG")" >> "$GITHUB_ENV"
           fi
-      - name: Predict and score (quality gate at 95% JSON validity)
+      - name: Predict and score (report only, no gate)
         run: |
           mkdir -p results
           python tools/predict.py --model "$MODEL" --input data/validation.jsonl --out results/pred_ci.jsonl
-          python tools/score.py results/pred_ci.jsonl data/validation.jsonl --out results/score_ci.json --min-validity 95
+          python tools/score.py results/pred_ci.jsonl data/validation.jsonl --out results/score_ci.json
       - uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: score-report
-          path: results/score_ci.json
+          name: evaluation
+          path: |
+            results/pred_ci.jsonl
+            results/score_ci.json
+  quality-gate:
+    if: github.event_name == 'workflow_dispatch'
+    needs: evaluate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: {name: evaluation, path: results}
+      - name: Quality gate - JSON validity must be at least 95%
+        run: python tools/score.py results/pred_ci.jsonl data/validation.jsonl --min-validity 95
   secret-scan:
     runs-on: ubuntu-latest
     steps:

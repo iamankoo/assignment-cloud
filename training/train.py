@@ -1,13 +1,15 @@
-"""Sequence-level knowledge distillation of Pythia-70M (Task 2). NOT RUN yet.
+"""Sequence-level knowledge distillation of Pythia-70M (Task 2). NOT RUN (no labelled data, transformers not installed locally).
 
 Loss: cross-entropy on the teacher's JSON answer only (prompt tokens labelled -100).
 Usage: python training/train.py --version v1 [--subset 50] [--seed 42] [--data path]
-Outputs training/output/<version>/{model.safetensors,tokenizer files,model.sha256} and results/loss_<version>.csv
+Outputs training/output/<version>/{model.safetensors,tokenizer files,model.sha256, run_info.json} and training/loss.csv
+(+ training/loss_<version>.csv so that v2 does not overwrite v1). One loss value per epoch.
 """
 import argparse
 import hashlib
 import json
 import pathlib
+import platform
 import random
 
 import yaml
@@ -82,8 +84,16 @@ def main():
     tok.save_pretrained(out)
     digest = hashlib.sha256((out / "model.safetensors").read_bytes()).hexdigest()
     (out / "model.sha256").write_text(f"{digest}  model.safetensors\n")
-    pathlib.Path("results").mkdir(exist_ok=True)
-    pathlib.Path(f"results/loss_{a.version}.csv").write_text("\n".join(log) + "\n")
+    import transformers
+
+    info = {
+        "version": a.version, "seed": seed, "records": len(rows), "torch": torch.__version__,
+        "transformers": transformers.__version__, "python": platform.python_version(),
+        "config": {k: cfg[k] for k in ("learning_rate", "batch_size", "epochs", "max_seq_len")},
+    }
+    (out / "run_info.json").write_text(json.dumps(info, indent=2) + "\n")
+    for name in ("loss.csv", f"loss_{a.version}.csv"):  # loss.csv = latest run; the per-version copy is not overwritten by v2
+        pathlib.Path("training", name).write_text("\n".join(log) + "\n")
     print("saved", out, digest)
 
 

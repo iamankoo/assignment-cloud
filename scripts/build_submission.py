@@ -25,6 +25,8 @@ EXPLICIT = {
     "scripts/subnet_calc.py": "network/subnet_calc.py",
     "tools/locustfile.py": "evaluation/locustfile.py",
     "tools/predict.py": "evaluation/predict.py",
+    "tools/demo_server.py": "evaluation/demo_server.py",
+    ".dockerignore": ".dockerignore",
     "scripts/cost.py": "evaluation/cost.py",
     "Makefile": "docs/Makefile",
     "AI_USE.md": "docs/AI_USE.md",
@@ -32,11 +34,11 @@ EXPLICIT = {
 }
 PREFIX = [("service/", "src/service/"), ("worker/", "src/worker/"), ("prompts/", "src/prompts/"),
           ("scripts/", "src/scripts/"), ("cluster/", "k8s/cluster/")]
-KEEP = ("report/", "reflection/", "tests/", "training/", "k8s/", "network/", "docs/", "results/", ".github/")
+KEEP = ("report/", "reflection/", "tests/", "training/", "k8s/", "network/", "docs/", "results/", ".github/", "data/")
 EXCLUDE = {"scripts/build_submission.py", ".gitignore"}
 TEXT_EXT = {".md", ".py", ".sh", ".yaml", ".yml", ""}
 ZIP_LAYOUT_TOP = {"README.md", "report", "reflection", "src", "tests", "training", "evaluation", "docker", "k8s",
-                  "network", ".github", "results", "docs"}
+                  "network", ".github", "results", "docs", "data", ".dockerignore"}
 
 REWRITES = [
     (r"service/Dockerfile", "docker/Dockerfile.service"),
@@ -45,6 +47,7 @@ REWRITES = [
     (r"scripts/subnet_calc\.py", "network/subnet_calc.py"),
     (r"tools/locustfile\.py", "evaluation/locustfile.py"),
     (r"tools/predict\.py", "evaluation/predict.py"),
+    (r"tools/demo_server\.py", "evaluation/demo_server.py"),
     (r"tools/score\.py", "evaluation/score.py"),
     (r"scripts/cost\.py", "evaluation/cost.py"),
     (r"(?<![\w./-])service/", "src/service/"),
@@ -64,12 +67,13 @@ TEST_PATCHES = {
         ('[str(ROOT / "service"), str(ROOT / "tools"), str(ROOT / "scripts")]', '[str(ROOT / "src" / "service"), str(ROOT / "network")]'),
     ],
     "tests/test_reported.py": [
-        ('sys.path[:0] = [str(ROOT / "scripts")]', 'sys.path[:0] = [str(ROOT / "src" / "scripts")]'),
+        ('sys.path[:0] = [str(ROOT / "scripts")]', 'sys.path[:0] = [str(ROOT / "src" / "scripts"), str(ROOT / "evaluation")]'),
         ('ROOT / "cluster" / "seaweedfs.yaml"', 'ROOT / "k8s" / "cluster" / "seaweedfs.yaml"'),
     ],
     "tests/test_pipeline.py": [
         ('[str(ROOT / "worker"), str(ROOT / "service")]', '[str(ROOT / "src" / "worker"), str(ROOT / "src" / "service")]'),
         ('ROOT / "tools" / "predict.py"', 'ROOT / "evaluation" / "predict.py"'),
+        ('ROOT / "worker" / "teacher_worker.py"', 'ROOT / "src" / "worker" / "teacher_worker.py"'),
     ],
 }
 ZIP_TABLE = """## Repository Structure (submission ZIP layout)
@@ -219,7 +223,9 @@ def main():
     for req in ["README.md", "report/report.pdf", f"reflection/{ROLL}.pdf", "docs/AI_USE.md", "docs/Makefile", "docs/SETUP.md",
                 "docs/RELEASE_METADATA.md", "src/service/app.py", "src/worker/teacher_worker.py", "training/train.py",
                 "evaluation/predict.py", "docker/Dockerfile.service", "docker/Dockerfile.worker", "k8s/app.yaml",
-                "network/nacl.json", "network/subnets.md", ".github/workflows/ci.yml", "results/pytest_local.txt"]:
+                "network/nacl.json", "network/subnets.md", ".github/workflows/ci.yml", "results/pytest_local.txt",
+                "evaluation/demo_server.py", "evaluation/cost.py", "src/scripts/slo.py", "data/rate_card.example.json", ".dockerignore",
+                "docs/SUBMISSION_CHECKLIST.md", "docs/STUDY_GUIDE.md", "docs/release_checksums/external_reference_artifacts.json"]:
         if not (stage / req).is_file():
             problems.append(f"missing {req}")
     if sorted(p.name for p in (stage / "reflection").iterdir()) != [f"{ROLL}.pdf"]:

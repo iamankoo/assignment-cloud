@@ -10,7 +10,7 @@ import teacher_worker as tw  # noqa: E402
 
 
 def rec(i, text, raw):
-    return {"id": f"C{i}", "text": text, "raw": raw}
+    return {"id": f"C{i}", "text": text, "teacher_raw": raw}
 
 
 GOOD = '{"intent": "weather_query", "date": null, "time": null, "place": "london"}'
@@ -59,3 +59,65 @@ def test_job_manifest_is_two_way_indexed():
 
     job = yaml.safe_load((ROOT / "k8s" / "worker-job.yaml").read_text().split("---")[1])["spec"]
     assert job["completionMode"] == "Indexed" and job["completions"] == job["parallelism"] == 2
+
+
+def test_clean_dedupes_by_command_text_and_keeps_smallest_id():
+    a = '{"intent": "weather_query", "date": null, "time": null, "place": "london"}'
+    recs = [rec(1, "what is the weather in london", a), rec(2, "What is  the weather in London", a.replace("weather_query", "datetime_query"))]
+    kept, c = clean.clean(recs)
+    assert [k["id"] for k in kept] == ["C1"] and c["duplicates"] == 1  # same command, different label -> still a duplicate
+
+
+def test_clean_reads_teacher_raw_and_legacy_raw_field():
+    assert clean.clean([{"id": "C1", "text": "weather in london", "teacher_raw": GOOD}])[1]["kept"] == 1
+    assert clean.clean([{"id": "C1", "text": "weather in london", "raw": GOOD}])[1]["kept"] == 1
+
+
+def test_worker_output_field_name_is_teacher_raw():
+    src = (ROOT / "worker" / "teacher_worker.py").read_text()
+    assert '"teacher_raw": raw' in src and "temperature" in src and '"seed": 42' in src
+
+
+def test_clean_cli_writes_sorted_output_and_checksum(tmp_path):
+    import hashlib
+    import json
+    import subprocess
+
+    shard0 = tmp_path / "shard-0.jsonl"
+    shard1 = tmp_path / "shard-1.jsonl"
+    shard0.write_text(json.dumps({"id": "C0002", "text": "weather in london", "teacher_raw": GOOD}) + chr(10))
+    shard1.write_text(json.dumps({"id": "C0001", "text": "weather in london today", "teacher_raw": GOOD}) + chr(10))
+    out, counts = tmp_path / "v1" / "train.jsonl", tmp_path / "counts.json"
+    script = next(pathlib.Path(clean.__file__).resolve().parent.glob("clean.py"))
+    subprocess.run([sys.executable, str(script), "--shards", str(shard0), str(shard1), "--out", str(out), "--counts-out", str(counts)], check=True, capture_output=True)
+    ids = [json.loads(line)["id"] for line in out.read_text().splitlines()]
+    assert ids == ["C0001", "C0002"]
+    digest = hashlib.sha256(out.read_bytes()).hexdigest()
+    assert (tmp_path / "v1" / "train.sha256").read_text().split()[0] == digest
+    assert json.loads(counts.read_text())["kept"] == 2
+
+
+def test_training_config_records_required_items():
+    import yaml
+
+    cfg = yaml.safe_load((ROOT / "training" / "config.yaml").read_text())
+    for key in ("seed", "learning_rate", "batch_size", "epochs", "max_seq_len", "libraries"):
+        assert key in cfg
+    assert {"torch", "transformers"} <= set(cfg["libraries"])
+    src = (ROOT / "training" / "train.py").read_text()
+    assert "torch.manual_seed(seed)" in src and '"loss.csv"' in src
+
+
+def test_demo_server_serves_real_app_with_stub_model():
+    import importlib.util
+
+    from fastapi.testclient import TestClient
+
+    path = next(ROOT.glob("*/demo_server.py"))
+    spec = importlib.util.spec_from_file_location("demo_server", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    c = TestClient(mod.install_stub())
+    r = c.post("/parse", json={"text": "what is the weather in london"})
+    assert r.status_code == 200 and r.json()["intent"] == "weather_query" and r.json()["place"] == "london"
+    assert set(r.json()) == {"intent", "date", "time", "place"} and "x-served-by" in r.headers

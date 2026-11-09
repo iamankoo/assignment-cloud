@@ -1,0 +1,5 @@
+{
+  "_comment": "HYPOTHETICAL exercise prices in INR, used only to demonstrate scripts/cost.py. Replace with the instructor's student_kit data/rate_card.json for the graded run. The values 3.50 and 0.45 are those quoted for the exercise rate card in a public reference report (rahul-singh92/NanoParse); they give 7.90 INR/hour for two replicas of 1 vCPU and 1 GiB, which is also the hourly figure in the student's own reflection.",
+  "cpu_per_hour": 3.50,
+  "memory_gib_per_hour": 0.45
+}

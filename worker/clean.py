@@ -1,4 +1,4 @@
-"""Clean the teacher shards into train.jsonl (Task 1). NOT RUN on real teacher output yet.
+"""Clean the teacher shards into train.jsonl (Task 1). Unit-tested on toy records; NOT RUN on real teacher output.
 
 Usage: python worker/clean.py --shards datasets/teacher/shard-0.jsonl datasets/teacher/shard-1.jsonl \
            --out datasets/v1/train.jsonl --counts-out results/clean_counts.json
@@ -7,6 +7,7 @@ Rejection reasons are counted in the order checked; input = kept + sum(rejected)
 import argparse
 import hashlib
 import json
+import os
 import pathlib
 
 INTENTS = {"alarm_set", "alarm_query", "calendar_set", "calendar_query", "calendar_remove",
@@ -37,11 +38,11 @@ def clean(records):
     kept, seen = [], set()
     for rec in records:
         counts["input"] += 1
-        obj, reason = check(rec["text"], rec["raw"])
+        obj, reason = check(rec["text"], rec.get("teacher_raw", rec.get("raw", "")))
         if reason:
             counts[reason] += 1
             continue
-        key = (rec["text"].casefold().strip(), json.dumps(obj, sort_keys=True))
+        key = " ".join(rec["text"].casefold().split())  # duplicate COMMAND; the smallest id is seen first (ids sorted)
         if key in seen:
             counts["duplicates"] += 1
             continue
@@ -56,8 +57,16 @@ def main():
     ap.add_argument("--shards", nargs="+", required=True)
     ap.add_argument("--out", default="datasets/v1/train.jsonl")
     ap.add_argument("--counts-out", default="results/clean_counts.json")
+    ap.add_argument("--s3", action="store_true", help="read shards from / write results to the datasets bucket")
     a = ap.parse_args()
-    recs = [json.loads(l) for p in a.shards for l in pathlib.Path(p).read_text(encoding="utf-8").splitlines() if l.strip()]
+    if a.s3:
+        import boto3
+
+        s3 = boto3.client("s3", endpoint_url=os.environ["S3_ENDPOINT"])
+        texts = [s3.get_object(Bucket="datasets", Key=f"teacher/{pathlib.Path(p).name}")["Body"].read().decode("utf-8") for p in a.shards]
+    else:
+        texts = [pathlib.Path(p).read_text(encoding="utf-8") for p in a.shards]
+    recs = [json.loads(l) for t in texts for l in t.splitlines() if l.strip()]
     recs.sort(key=lambda r: r["id"])
     kept, counts = clean(recs)
     out = pathlib.Path(a.out)

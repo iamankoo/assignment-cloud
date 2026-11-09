@@ -1,0 +1,53 @@
+# Local API demonstration against the REAL FastAPI app with a STUB generator (tools/demo_server.py).
+# Date: 2026-11-09T04:46Z  Host: Windows 11, Python 3.10.11
+# NOT a model result and NOT a performance result: the stub is a keyword rule set, not Pythia-70M.
+
+$ curl -s -i localhost:8000/healthz
+HTTP/1.1 200 OK
+date: Mon, 09 Nov 2026 04:46:09 GMT
+server: uvicorn
+content-length: 15
+content-type: application/json
+
+{"status":"ok"}
+
+$ curl -s -i localhost:8000/readyz
+HTTP/1.1 200 OK
+date: Mon, 09 Nov 2026 04:46:09 GMT
+server: uvicorn
+content-length: 14
+content-type: application/json
+
+{"ready":true}
+
+$ curl -s -i -X POST localhost:8000/parse -H Content-Type:application/json -d {"text":"what_is_the_weather_in_london"}
+HTTP/1.1 200 OK
+date: Mon, 09 Nov 2026 04:46:09 GMT
+server: uvicorn
+x-model-version: v-stub
+x-served-by: demo-pod-1
+content-length: 70
+content-type: application/json
+
+{"intent": "weather_query", "date": null, "time": null, "place": null}
+
+$ curl -s -i -X POST localhost:8000/parse -d {"text":"what is the weather in london"}
+HTTP/1.1 200 OK
+date: Mon, 09 Nov 2026 04:46:10 GMT
+server: uvicorn
+x-model-version: v-stub
+x-served-by: demo-pod-1
+content-length: 74
+content-type: application/json
+
+{"intent": "weather_query", "date": null, "time": null, "place": "london"}
+
+# FAULT_INJECT=1 instance on :8001
+$ curl -s -i -X POST localhost:8001/parse -d {"text":"what is the weather in london"}
+HTTP/1.1 500 Internal Server Error
+date: Mon, 09 Nov 2026 04:46:10 GMT
+server: uvicorn
+content-length: 32
+content-type: application/json
+
+{"error":"invalid_model_output"}

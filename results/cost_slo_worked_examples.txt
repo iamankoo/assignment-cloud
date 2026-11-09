@@ -1,0 +1,24 @@
+# CALCULATED worked examples (pure arithmetic). Inputs are HYPOTHETICAL throughput values; they are NOT measurements.
+# Prices: data/rate_card.example.json (3.50 INR/vCPU-h, 0.45 INR/GiB-h; hypothetical exercise rates)
+$ python scripts/cost.py --rate-card data/rate_card.example.json --replicas 2 --cpu 1 --mem-gib 1 --rps 0.25
+hourly 7.9000  requests/hour 900.0  cost per 1000 requests 8.7778
+$ python scripts/cost.py --rate-card data/rate_card.example.json --replicas 2 --cpu 1 --mem-gib 1 --rps 0.5
+hourly 7.9000  requests/hour 1800.0  cost per 1000 requests 4.3889
+$ python scripts/cost.py --rate-card data/rate_card.example.json --replicas 2 --cpu 1 --mem-gib 1 --rps 0.57
+hourly 7.9000  requests/hour 2052.0  cost per 1000 requests 3.8499
+$ python scripts/cost.py --rate-card data/rate_card.example.json --replicas 2 --cpu 1 --mem-gib 1 --rps 0.75
+hourly 7.9000  requests/hour 2700.0  cost per 1000 requests 2.9259
+$ python scripts/cost.py --rate-card data/rate_card.example.json --replicas 2 --cpu 1 --mem-gib 1 --rps 1.0
+hourly 7.9000  requests/hour 3600.0  cost per 1000 requests 2.1944
+
+# SLO 99% over one run; request counts are HYPOTHETICAL
+$ python scripts/slo.py --requests 1000 --failed 0 --target 99
+SLO 99.0% over 1000 requests: budget 10.00 failures, observed 0, budget used 0.0%, success 100.00% -> MET
+$ python scripts/slo.py --requests 1000 --failed 7 --target 99
+SLO 99.0% over 1000 requests: budget 10.00 failures, observed 7, budget used 70.0%, success 99.30% -> MET
+$ python scripts/slo.py --requests 1000 --failed 10 --target 99
+SLO 99.0% over 1000 requests: budget 10.00 failures, observed 10, budget used 100.0%, success 99.00% -> MET
+$ python scripts/slo.py --requests 1000 --failed 25 --target 99
+SLO 99.0% over 1000 requests: budget 10.00 failures, observed 25, budget used 250.0%, success 97.50% -> NOT MET
+$ python scripts/slo.py --requests 254 --failed 3 --target 99
+SLO 99.0% over 254 requests: budget 2.54 failures, observed 3, budget used 118.1%, success 98.82% -> NOT MET

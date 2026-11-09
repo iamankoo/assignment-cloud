@@ -1,113 +1,327 @@
 \documentclass[10pt,a4paper]{article}
-\usepackage[margin=1.8cm]{geometry}
+\usepackage[margin=1.9cm,top=2.1cm,bottom=2cm]{geometry}
 \usepackage[T1]{fontenc}
-\usepackage{amsmath,booktabs,array,xcolor,tikz,enumitem}
-\usetikzlibrary{arrows.meta,positioning,shapes.geometric}
-\setlength{\parindent}{0pt}\setlength{\parskip}{3pt}
-\setlist{nosep,leftmargin=1.3em}
-\newcommand{\ph}{\textcolor{red!70!black}{[PLACEHOLDER]}}
-\newcommand{\tc}[1]{\texttt{\small #1}}
+\usepackage{lmodern,microtype}
+\usepackage{amsmath,booktabs,array,tabularx,xcolor,enumitem,graphicx,caption,titlesec}
+\usepackage{tikz,pgfplots}
+\usepackage{fancyhdr,xspace}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,calc}
+\pgfplotsset{compat=1.16}
+\emergencystretch=3em\setlength{\parindent}{0pt}\setlength{\parskip}{3.2pt}
+\setlist{nosep,leftmargin=1.2em}
+\captionsetup{font=small,labelfont=bf,skip=3pt}
+\renewcommand{\arraystretch}{1.12}
+\pagestyle{fancy}\fancyhf{}
+\fancyhead[L]{\small CS3081 Mini Project --- Technical Report (mock demonstration)}
+\fancyhead[R]{\small Aniket Raj \textperiodcentered{} 230103030}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+
+% \tc prints its argument verbatim (do not escape underscores inside it)
+\newcommand{\tc}[1]{\texttt{\small\detokenize{#1}}}
+\newcommand{\evA}{\textcolor{green!40!black}{\textbf{[A]}}\xspace}
+\newcommand{\evC}{\textcolor{blue!60!black}{\textbf{[C]}}\xspace}
+\newcommand{\evI}{\textcolor{orange!80!black}{\textbf{[I]}}\xspace}
+\newcommand{\evR}{\textcolor{violet!80!black}{\textbf{[R]}}\xspace}
+\newcommand{\evS}{\textcolor{red!70!black}{\textbf{[S]}}\xspace}
+\newcommand{\evP}{\textcolor{gray!70!black}{\textbf{[P]}}\xspace}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\titleformat{\section}{\large\bfseries}{\thesection}{0.6em}{}
+\titlespacing*{\section}{0pt}{9pt}{3pt}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{0.5em}{}
+\titlespacing*{\subsection}{0pt}{5pt}{2pt}
+
 \begin{document}
-{\LARGE\bfseries CS3081 Mini Project --- Technical Report}\\[2pt]
-\textbf{Aniket Raj}, roll no.\ 230103030, GitHub \tc{iamankoo}, \tc{github.com/iamankoo/Cloud-Assignment}
+{\LARGE\bfseries Knowledge Distillation and Deployment of a Command-Parsing Model on a Local Cloud}\\[3pt]
+{\large CS3081 Cloud Computing --- Mini Project Technical Report}\\[3pt]
+\textbf{Aniket Raj} \textperiodcentered{} roll no.\ \textbf{230103030} \textperiodcentered{} GitHub \tc{iamankoo} \textperiodcentered{} \url{https://github.com/iamankoo/Cloud-Assignment}
 
-\colorbox{gray!15}{\parbox{\dimexpr\textwidth-2\fboxsep}{\small\textbf{Evidence policy.} This is an independent but \emph{incomplete} submission.
-\textbf{Implemented/tested} = exists and was run locally (18 unit tests, pyflakes, own NACL evaluator, subnet script; logs in \tc{results/}).
-\textbf{Method} = procedure described, \emph{not} executed. \ph\ = no measurement exists. No training, labelling, Docker build, cluster run, CI run or load test was performed. Expected outcomes are theory, not results.}}
+\fcolorbox{black!40}{gray!10}{\parbox{\dimexpr\textwidth-2\fboxsep-2\fboxrule}{\small
+\textbf{Status of this document.} This is a \emph{mock demonstration} report for preliminary teacher evaluation, not the graded submission. It describes a complete
+design and implementation for all seven tasks and the procedure for evaluating each one. \textbf{The expensive experiments (teacher labelling, student training, Docker build,
+cluster deployment, load test, CI runs) have not been executed}; no result in this report was fabricated to fill that gap. Every number carries an evidence tag:\\[2pt]
+\evA~\textbf{Actual}: produced by running code in this repository; log in \tc{results/}. \quad
+\evC~\textbf{Calculated}: deterministic arithmetic or derivation, reproducible by a script or test. \quad
+\evI~\textbf{Illustrative}: hypothetical inputs that demonstrate a method; not a measurement. \quad
+\evR~\textbf{Reference}: published by another student (\tc{rahul-singh92/NanoParse}, release v1.0, no licence file); \emph{quoted for context only, not my work and not my result}. \quad
+\evS~\textbf{Student-reported}: from my handwritten reflection, no logs exist, unverified. \quad
+\evP~\textbf{Planned}: written but not executed.}}
 
-\section*{1. Introduction and architecture}
-A 3.8B-parameter teacher (Phi-3.5 Mini via Ollama) labels 3,000 commands once, offline; a 70M student (Pythia-70M) imitates those labels (sequence-level knowledge distillation); only the student is served.
-\begin{center}\begin{tikzpicture}[node distance=5mm,every node/.style={draw,rounded corners,font=\scriptsize,align=center,minimum height=7mm,fill=blue!6},>=Stealth]
-\node (a) {commands\\pool};
-\node[right=of a] (b) {SeaweedFS\\datasets};
-\node[right=of b] (c) {2 teacher Jobs\\shard $=$ idx mod 2};
-\node[right=of c] (d) {clean.py\\train.jsonl};
-\node[right=of d] (e) {Pythia-70M\\v1, v2};
-\node[below=of e] (f) {Release +\\SeaweedFS models};
-\node[left=of f] (g) {FastAPI pods\\(ns app)};
-\node[left=of g] (h) {Service +\\Ingress};
-\node[left=of h] (i) {/parse\\HPA 1--2};
-\foreach \x/\y in {a/b,b/c,c/d,d/e,e/f,f/g,g/h,h/i} \draw[->] (\x)--(\y);
-\end{tikzpicture}\end{center}
+\section{Introduction and architecture}
+A fixed JSON ``frame'' with exactly four keys (\tc{intent}, \tc{date}, \tc{time}, \tc{place}) is extracted from a short English command, e.g.\ \emph{``what is the weather in london''} gives
+\tc{{"intent":"weather_query", "date":null, "time":null, "place":"london"}}. A 3.8B-parameter teacher (Phi-3.5-mini via Ollama) is far too large to serve on a laptop, so it is used
+\emph{once, offline} to label 3{,}000 commands. A 70M-parameter student (EleutherAI Pythia-70M, Apache-2.0) is then fine-tuned to reproduce those labels --- \emph{sequence-level knowledge
+distillation} (Kim and Rush, 2016) --- and only the student is deployed behind a FastAPI service on a two-node k3d cluster, with model weights kept in S3-compatible object storage
+(SeaweedFS), never in the image or in Git.
 
-\begin{center}\small\begin{tabular}{@{}clp{10cm}@{}}\toprule
-Task & Status & Evidence / gap\\\midrule
-1 & code written, not run & worker, cleaning (unit-tested on toy data), Job manifest; no kit data, Ollama or cluster\\
-2 & code written, not run & training script and config; no labelled data, no training\\
-3 & implemented, tested (stub) & 5 API tests; image not built, no 50-request test\\
-4 & manifest only & YAML fields tested; never applied\\
-5 & implemented, tested & subnet script and own evaluator 11/11; instructor's \tc{nacl\_sim.py} not run\\
-6 & partial & workflow incl. manual Release-gate job, Makefile (\tc{make up/down}); none ever run\\
-7 & code written, not run & Locust file, cost script; nothing deployed, no measurements\\\bottomrule\end{tabular}\end{center}
+\begin{figure}[h]\centering
+\begin{tikzpicture}[node distance=4.5mm and 6mm,every node/.style={draw,rounded corners=2pt,font=\scriptsize,align=center,minimum height=8mm,fill=blue!6},>=Stealth,
+ store/.style={fill=orange!12},svc/.style={fill=green!10},ci/.style={fill=gray!12}]
+\node (a) {\tc{commands_pool}\\3{,}000 texts};
+\node[store,right=of a] (b) {SeaweedFS\\bucket \tc{datasets}};
+\node[right=of b] (c) {Indexed Job (ns \tc{pipeline})\\2 teacher workers, shard $=n \bmod 2$};
+\node[right=of c] (d) {\tc{clean.py}\\\tc{train.jsonl} + SHA-256};
+\node[below=of d] (e) {Pythia-70M\\SeqKD $\to$ v1, v2};
+\node[store,left=of e] (f) {SeaweedFS\\bucket \tc{models}};
+\node[svc,left=of f] (g) {FastAPI pods (ns \tc{app})\\download model at start-up};
+\node[svc,left=of g] (h) {Service\\+ Traefik Ingress};
+\node[svc,below=5mm of h] (i) {clients / Locust\\\tc{POST /parse}};
+\node[ci,below=5mm of g] (j) {HPA 1--2 @ 70\% CPU\\PDB, rolling update};
+\foreach \x/\y in {a/b,b/c,c/d,d/e,e/f,f/g,g/h,i/h,j/g} \draw[->] (\x)--(\y);
+\end{tikzpicture}
+\caption{End-to-end architecture. The Ollama server runs on the host and is reached from the cluster at \tc{host.k3d.internal:11434}.}\label{fig:arch}
+\end{figure}
 
-\textbf{Model artifacts.} This project has no model archives of its own. The GitHub Release \tc{reference-nanoparse-v1.0} is a provenance record only: two Pythia-70M archives from rahul-singh92/NanoParse release v1.0 (author Rahul Singh Jadoun) were uploaded earlier as reference material and have been \emph{removed}, because permission to redistribute them could not be established. They were never trained or evaluated here and are not my results; my own archives and evaluation outputs remain outstanding (see \tc{docs/RELEASE\_METADATA.md}). Paths in this report use the GitHub repository layout; the submission ZIP maps them as listed in its \tc{README.md}.
+\begin{table}[h]\centering\small
+\begin{tabularx}{\textwidth}{@{}c l Y@{}}\toprule
+Task & Implementation (repository path) & Evidence level in this report\\\midrule
+1 & \tc{worker/}, \tc{k8s/worker-job.yaml}, \tc{cluster/}, \tc{prompts/} & sharding and cleaning logic unit-tested on toy records \evA; labelling run \evP\\
+2 & \tc{training/}, \tc{tools/predict.py} & config and code reviewed, config completeness tested \evA; training \evP\\
+3 & \tc{service/}, \tc{tools/demo_server.py} & 29-test suite \evA; stub-model API demo and Locust toolchain smoke test \evA; Docker build \evP\\
+4 & \tc{k8s/app.yaml} & manifest fields unit-tested \evA; cluster behaviour \evP\\
+5 & \tc{network/}, \tc{scripts/subnet_calc.py}, \tc{tools/nacl_eval.py} & subnet plan and 11/11 packets \evA\\
+6 & \tc{.github/workflows/ci.yml}, \tc{Makefile}, \tc{tests/} & stage order and gate logic tested statically \evA; no CI run \evP\\
+7 & \tc{tools/locustfile.py}, \tc{scripts/cost.py}, \tc{scripts/slo.py} & cost and SLO arithmetic \evC; worked examples \evI; real load test \evP\\\bottomrule
+\end{tabularx}
+\caption{Per-task implementation and honest evidence level. Environment used: Windows 11, Python 3.10.11; the Docker daemon, k3d, Ollama and \tc{transformers} were not available.}\label{tab:status}
+\end{table}
 
-\section*{2. Task 1 --- Object storage and parallel teacher labelling (method)}
-\textbf{Design.} SeaweedFS (S3 gateway) in namespace \tc{data}, buckets \tc{datasets} and \tc{models}. An Indexed Job (\tc{completions=parallelism=2}) in \tc{pipeline}; worker $i$ labels records with $n \bmod 2 = i$. Shards are complete (every $n$ has one residue), disjoint, and balanced ($1500+1500$).
-\textbf{Cleaning} keeps a reply only if: valid JSON; exactly keys \tc{intent,date,time,place}; intent in the eight allowed; each non-null slot occurs in the command; not a duplicate. Check: $N_{in}=N_{kept}+\sum N_{rejected}$; publish SHA-256 of \tc{train.jsonl}.
-\textbf{Measure:} per-shard counts \ph; Job duration \ph; rejection counts per rule \ph; kept \ph; checksum \ph. \textbf{Limitation:} both workers share one host CPU for Ollama, so speed-up may be small.
+\section{Task 1 --- Object storage and parallel teacher labelling}
+\textbf{Design.} k3d (\tc{cluster/k3d.yaml}: 1 server + 1 agent, host port 8080 to 80) hosts SeaweedFS in namespace \tc{data} (single replica, S3 gateway :8333, 2\,GiB PVC, 1.5\,GiB memory limit),
+with buckets \tc{datasets} and \tc{models} (\tc{scripts/upload.py}). The teacher prompt (\tc{prompts/teacher_prompt.txt}) states the four-key schema, the eight intents and the three slot rules
+(copy verbatim, shortest phrase, otherwise null). Ollama is called with \tc{temperature=0}, \tc{seed=42}; the reply is stored \emph{exactly as generated} in the field \tc{teacher_raw}.
 
-\section*{3. Task 2 --- Student training (method)}
-Sequence-level KD (Kim and Rush, 2016): train on the teacher's best sequence $y^*$ with cross-entropy,
-\[\mathcal{L}(\theta)=-\sum_{t=1}^{T}\log p_\theta\!\left(y^*_t\mid x,y^*_{<t}\right),\]
-prompt tokens masked. Input format \tc{Command: <text>\textbackslash nJSON: <json>} --- identical to the service prompt. Pythia-70M, first 1,500 cleaned records, AdamW $\approx5\times10^{-5}$, batch 8 (188 steps/epoch), 3--4 epochs, seed fixed, all values in \tc{training/config.yaml}; \tc{make train}, \tc{make train SUBSET=50}. v1 and v2 differ by a recorded setting; both get SHA-256 and a GitHub Release asset; weights are never committed.
-\begin{center}\small\begin{tabular}{@{}lcccccc@{}}\toprule
-Model & JSON valid & Intent & Date & Time & Place & Full frame\\\midrule
-Teacher & \ph & \ph & \ph & \ph & \ph & \ph\\
-Untrained Pythia-70M & \ph & \ph & \ph & \ph & \ph & \ph\\
-Student v1 & \ph & \ph & \ph & \ph & \ph & \ph\\
-Student v2 & \ph & \ph & \ph & \ph & \ph & \ph\\\bottomrule\end{tabular}\end{center}
-\emph{Expected (theory):} the untrained model scores near 0\% validity; the trained student improves validity sharply but cannot exceed its teacher's slot accuracy. Loss per epoch: \ph.
+\textbf{Sharding.} An Indexed Job (\tc{completions}=\tc{parallelism}=2, namespace \tc{pipeline}) starts two pods whose \tc{JOB_COMPLETION_INDEX} serves as \tc{SHARD_INDEX}. Worker $i$ takes the records whose
+0-based line number $n$ satisfies $n \bmod K = i$ ($K$=\tc{SHARD_COUNT}=2) and writes \tc{datasets/teacher/shard-}$i$\tc{.jsonl}. Each $n$ has exactly one residue, so shards are \emph{complete and disjoint} (no gap, no repeat);
+for 3{,}000 records they are \emph{balanced} (1{,}500 each) \evC; all three properties are asserted by a unit test on 3{,}000 synthetic ids \evA. Workers are resumable (finished ids are skipped), so a restarted pod does not duplicate work.
+Caveat: both workers share one host CPU for Ollama, so wall-clock speed-up may be well below 2$\times$ (\tc{OLLAMA_NUM_PARALLEL=2} allows two concurrent requests).
 
-\section*{4. Task 3 --- FastAPI inference service and Docker}
-\tc{POST /parse}, \tc{GET /healthz}, \tc{GET /readyz} (503 until the model is loaded). Output pipeline: \tc{raw $\to$ json.loads $\to$ jsonschema.validate}; failure $\to$ HTTP 500 \tc{invalid\_model\_output}; \tc{FAULT\_INJECT=1} substitutes \tc{not json}. Success sets \tc{X-Model-Version} and \tc{X-Served-By}. Dockerfile: \tc{python:3.11-slim}, CPU-only torch 2.4.1, pinned dependencies, no weights, limit $\le$2\,GB.
-\textbf{Tested:} 5 stub-model tests pass (success+headers, bad intent, extra key, fault injection, health/ready). \textbf{Not done:} image build and size \ph; 50 sequential requests at 1 CPU/1\,GiB, peak memory \ph.
+\textbf{Cleaning} (\tc{worker/clean.py}). Records are read from all shards, sorted by id, and rejected at the \emph{first} failing rule: (a) not valid JSON; (b) keys not exactly the four; (c) intent not one of the eight;
+(d) a non-null slot that is not a string occurring in the command (case-insensitive); then (e) duplicate \emph{command text} (the smallest id is kept). The rest is written to \tc{datasets/v1/train.jsonl} with \tc{train.sha256}.
+Because each record is counted once, $N_{\text{in}} = N_{a}+N_{b}+N_{c}+N_{d}+N_{\text{dup}}+N_{\text{kept}}$ always holds (asserted in tests \evA). The unit test uses six hand-written toy records \evI:
 
-\section*{5. Task 4 --- Kubernetes}
-Namespace \tc{app}: Deployment (2 replicas; requests 250m/512Mi; limits 1 CPU/1Gi; liveness \tc{/healthz}; readiness \tc{/readyz}; RollingUpdate maxUnavailable 0, maxSurge 1) $\to$ Service :80 $\to$ Ingress (Traefik); HPA min 1, max 2, CPU 70\%. HPA rule:
-\[\text{desired}=\left\lceil \text{current}\times\frac{\text{utilisation}}{\text{target}}\right\rceil,\quad\text{e.g. }\lceil 2\cdot 140/70\rceil=4\to\text{clipped to }2.\]
-Procedures: replica distribution via \tc{X-Served-By}; rollout by \tc{kubectl set env} (v1$\to$v2) under load then \tc{rollout undo}; pod deletion under load; three cold starts. Only the YAML fields were tested. Results: failed requests during rollout (target $\le0.5\%$) \ph; version after rollback \ph; recovery time \ph; cold starts \ph; HPA events \ph. \textbf{Limitation:} single host, no node-failure tolerance.
+\begin{center}\small
+\begin{tabular}{@{}lccccccc@{}}\toprule
+ & input & (a) & (b) & (c) & (d) & duplicates & kept\\\midrule
+Toy example \evI\evA & 6 & 1 & 1 & 1 & 1 & 1 & 1\\
+Reference run \evR & 3{,}000 & 1 & 57 & \multicolumn{2}{c}{610 (invalid slots)} & 40 & 2{,}292\\
+This project, real run & \multicolumn{7}{p{7.4cm}}{\raggedright needs the labelled data of a real run \evP: \tc{make label}, then \tc{make clean-data}; counts go to \tc{results/clean_counts.json}}\\\bottomrule
+\end{tabular}\end{center}
+The reference row satisfies the identity ($1+57+610+40=708$, $3000-708=2292$) \evC, but it is another student's measurement. \textbf{Marking checks to reproduce:} two Job pods with different \tc{SHARD_INDEX}; every id in exactly one shard; re-running
+\tc{clean.py} reproduces the SHA-256 in \tc{train.sha256} (output is written with LF line endings and sorted ids to make this deterministic; tested \evA).
 
-\section*{6. Task 5 --- Subnetting and NACL (implemented, tested)}
-Prefix $p=32-\lceil\log_2(h+2)\rceil$; blocks placed contiguously, largest first.
-\begin{center}\small\begin{tabular}{@{}lrllllr@{}}\toprule
-Subnet & $h$ & Network & Usable range & Broadcast & Usable\\\midrule
-app & 1000 & 10.20.0.0/22 & .0.1--.3.254 & 10.20.3.255 & 1022\\
-public & 250 & 10.20.4.0/24 & .4.1--.4.254 & 10.20.4.255 & 254\\
-data & 100 & 10.20.5.0/25 & .5.1--.5.126 & 10.20.5.127 & 126\\
-management & 20 & 10.20.5.128/27 & .5.129--.5.158 & 10.20.5.159 & 30\\\bottomrule\end{tabular}\end{center}
-Example: $\log_2 1002=9.97\Rightarrow p=22$, 1022 usable. \textbf{NACL algorithm:} sort rules ascending; first rule matching CIDR (source inbound, destination outbound) and protocol/port decides; none $\Rightarrow$ deny. Inbound: 100 deny 198.51.100.0/24 (all); 110 tcp 80; 120 tcp 443; 130 tcp 22 from 10.20.5.128/27; 140 tcp 1024--65535 from 10.20.0.0/22. Outbound: 100 tcp 8000 to 10.20.0.0/22; 110 tcp 1024--65535 to 0.0.0.0/0.
-\textbf{Why replies need rules:} a NACL is stateless; a reply is a new packet judged alone. \textbf{Why order matters:} rule 100 precedes 110/120, otherwise 198.51.100.0/24 would be allowed on 80/443. \textbf{Side effect:} rule 110 also permits outbound TCP 8000 to anywhere. \textbf{Tested:} own evaluator 11/11 packets; the instructor's six-packet \tc{nacl\_sim.py} was not run.
+\section{Task 2 --- Student training by sequence-level distillation}
+\textbf{Method.} Each example is the line \tc{Command: <text>} followed by the line \tc{JSON: <teacher JSON>}; the \emph{same prompt string} is used by \tc{train.py}, \tc{predict.py} and the service (checked by a test \evA). The loss is token-level cross-entropy on the
+teacher's best sequence $y^{*}$ (prompt tokens masked with $-100$):
+\[\mathcal{L}(\theta)=-\sum_{t=1}^{T}\log p_\theta\!\left(y^{*}_t \mid x,\,y^{*}_{<t}\right).\]
+\textbf{Configuration} (\tc{training/config.yaml}, read by \tc{make train}; values are \evP): seed 42 (\tc{random} and \tc{torch}), learning rate $5\!\times\!10^{-5}$ (AdamW, weight decay 0.01, gradient clipping 1.0), batch size 8, 3 epochs, max length 128, first 1{,}500 cleaned records
+(188 steps per epoch, 564 in total \evC), CPU, library versions pinned (torch 2.4.1, transformers 4.44.2, tokenizers 0.19.1, numpy 1.26.4, PyYAML 6.0.2). \tc{make train SUBSET=50} runs the same code on 50 records as a smoke test.
+Outputs: \tc{training/loss.csv} (one value per epoch), \tc{model.safetensors} and tokenizer, \tc{model.sha256} and \tc{run_info.json} (actual library versions) under \tc{training/output/<version>/}; \tc{scripts/upload.py} copies the directory to \tc{s3://models/v1}.
+The second version (v2) differs by one recorded setting (another seed via \tc{--seed}, or an extra epoch) and is the target of the rolling update in Task 4.
 
-\section*{7. Task 6 --- Reproducibility, CI/CD, security}
-Written: Makefile (\tc{test, lint, nacl, subnets}); \tc{.github/workflows/ci.yml} (pyflakes, pytest, gitleaks); pinned dependencies; \tc{.gitignore} excluding weights and \tc{.env}; \tc{AI\_USE.md}. \textbf{Not done:} any CI run, model evaluation from a Release, the 95\% validity gate, the deliberately failing run (link \ph), \tc{make up}. Gate logic: \tc{score.py --min-validity 95} exits non-zero below 95\%. Security: secrets only in Kubernetes/CI secrets; shared S3 identity is a known limitation.
+\textbf{Evaluation protocol.} The instructor's \tc{score.py} is run on \tc{validation.jsonl} (100 commands, never trained on) for three raw-output files: the teacher (same prompt and options as Task 1), the untrained Pythia-70M, and the student.
+Reported: JSON validity, intent/date/time/place accuracy and full-frame. Expected qualitative outcome \evP: the untrained model scores near 0\% validity; the student improves sharply but cannot exceed the teacher's slot accuracy, because it imitates the teacher's \emph{errors} too.
+For orientation only, another student's published run \evR reports teacher / student v1 / student v2 JSON validity of 94\% / 90\% / 89\% and full-frame accuracy of 44\% / 41\% / 42\%; those numbers are not mine and do not predict my result.
+The assignment's four-record scoring example (V001--V004) yields validity 75, intent 50, date 50, time 75, place 75 and full-frame 25 \evC (derived by hand from the specification).
 
-\section*{8. Task 7 --- Performance and cost (method)}
-Locust, 4 users, 2 minutes through the Ingress; failure = not HTTP 200 within 30\,s. Metrics: p50/p95 latency, throughput $=$ requests/s, error rate $=$ failures/requests, \tc{kubectl top} peak CPU/memory, cold-start median. Cost: $C_h=r\,(c\,P_{cpu}+m\,P_{mem})$ and
-\[\text{cost per 1000 req}=\frac{C_h}{3600\cdot\text{throughput}}\times1000,\]
-assuming billing at limits (an assumption). Error budget $=(1-\text{SLO})\times N$.
-\begin{center}\small\begin{tabular}{@{}lc@{}}\toprule
-Metric & Value\\\midrule
-p50 / p95 latency & \ph\\ Throughput & \ph\\ Error rate & \ph\\ Peak CPU / memory & \ph\\ Cold-start median & \ph\\ Cost per 1000 requests & \ph\\ SLO verdict & \ph\\\bottomrule\end{tabular}\end{center}
-Review table (six rows, evidence/limitation/improvement): requires real numbers \ph.
+\textbf{Sequence-level vs.\ logit-based distillation.} \emph{Sequence-level} distillation (this project) trains the student on the teacher's \emph{generated outputs} as hard targets: the student sees one decoded string per input. \emph{Logit-based} distillation (e.g.\ the TRL distillation trainer) trains the student to
+match the teacher's per-token probability distribution (KL divergence), which also transfers information about near-miss tokens. It is not possible here because the project fixes an Ollama-served Phi-3.5, which returns text rather than logits, and because teacher and student have different tokenizers, so
+the distributions cannot be aligned token by token. \textbf{Limitation of my approach:} greedy single-sample labels freeze the teacher's mistakes into the dataset, and with only 1{,}500 examples and 70M parameters the student has no mechanism that guarantees valid JSON (no constrained decoding), so validity must be gated (Task 6).
 
+\section{Task 3 --- Inference service and container}
+\begin{figure}[h]\centering
+\begin{tikzpicture}[node distance=5mm,every node/.style={draw,rounded corners=2pt,font=\scriptsize,align=center,minimum height=7mm,fill=green!8},>=Stealth,dec/.style={diamond,aspect=2.2,inner sep=1pt,fill=yellow!12}]
+\node (a) {\tc{POST /parse}\\body: text};
+\node[right=of a] (b) {ready?\\(model loaded)};
+\node[right=of b] (c) {\tc{generate()}, or \tc{not json}\\if \tc{FAULT_INJECT=1}};
+\node[dec,right=of c] (d) {\tc{json.loads}\\+ schema};
+\node[right=of d] (e) {200 + JSON\\\tc{X-Model-Version}\\\tc{X-Served-By}};
+\node[below=4mm of d,fill=red!10] (f) {500 \tc{"error":"invalid_model_output"}};
+\node[below=4mm of b,fill=red!10] (g) {503 until loaded};
+\draw[->](a)--(b);\draw[->](b)--(c);\draw[->](c)--(d);\draw[->](d)--node[above,draw=none,fill=none]{valid}(e);\draw[->](d)--node[right,draw=none,fill=none]{invalid}(f);\draw[->](b)--node[right,draw=none,fill=none]{no}(g);
+\end{tikzpicture}
+\caption{Request handling in \tc{service/app.py}. Broken JSON is never returned with HTTP 200.}\label{fig:svc}
+\end{figure}
+\textbf{API.} Port 8000. \tc{GET /healthz} is 200 while the process lives; \tc{GET /readyz} is 503 until the background loader has downloaded the model from \tc{MODEL_URI} on \tc{S3_ENDPOINT} and loaded it (a loader failure is logged and leaves the pod not-ready);
+\tc{POST /parse} validates every output against \tc{schema.json} and sets \tc{X-Model-Version} (from \tc{MODEL_VERSION}) and \tc{X-Served-By} (the pod name). \tc{MAX_NEW_TOKENS} bounds generation; credentials come only from a Kubernetes Secret.
 
-\section*{9. Figures reported in the original reflection (not verified)}
-These values are taken from my handwritten reflection. \textbf{No supporting logs exist in this project; none were created.} They are reported, not measured here.
-\begin{center}\small\begin{tabular}{@{}lll@{}}\toprule
+\textbf{Container.} \tc{python:3.11-slim}, CPU-only \tc{torch==2.4.1} from the PyTorch CPU index (the default wheels pull GPU libraries), every other dependency pinned, no weights in the image, non-root user (uid 10001), and a \tc{.dockerignore} that keeps data, models and results out of the build context.
+Size limit: 2\,GB. The fp32 weights alone are about $70.4\text{M}\times4\,\text{B}\approx0.28$\,GB \evC, which is why they live in object storage and are fetched at start-up.
+
+\textbf{What was actually run.} The 29-test suite (API success and headers, bad intent, extra key, \tc{FAULT_INJECT}, health and ready, cleaning, sharding, manifests, CI order, cost, SLO) passes \evA (\tc{results/pytest_local.txt}).
+\tc{tools/demo_server.py} runs the \emph{real} \tc{app.py} with a keyword-rule \textbf{stub} instead of Pythia-70M: \tc{/healthz} returned 200, \tc{/readyz} 200, a valid \tc{/parse} carried both headers, and \tc{FAULT_INJECT=1} gave HTTP 500 with the exact error body \evA (\tc{results/demo_api_stub.txt}).
+A 20\,s Locust run (4 users) against the stub completed 209 requests with 0 failures at 11.0 req/s \evA. This only proves that the Locust file, header counting and CSV output work; it says nothing about the real service \textbf{(stub, not a performance result)}.
+
+\textbf{Still to run} \evP: \tc{docker build -f service/Dockerfile -t command-parser:v1 .}, \tc{docker image inspect command-parser:v1} (size at most 2\,GB), and 50 sequential requests under \tc{docker run --cpus=1 --memory=1g}, sampling \tc{docker stats --no-stream} and checking \tc{State.OOMKilled} is false. For orientation, another student's recorded image was about 1.66\,GB with a peak of about 737\,MiB \evR.
+
+\section{Task 4 --- Kubernetes deployment, scaling and reliability}
+\begin{figure}[h]\centering
+\begin{tikzpicture}[node distance=5mm,every node/.style={draw,rounded corners=2pt,font=\scriptsize,align=center,minimum height=7mm},>=Stealth]
+\node[fill=blue!8] (c) {client\\\tc{:8080}};
+\node[right=of c,fill=blue!8] (i) {Traefik\\Ingress};
+\node[right=of i,fill=blue!8] (s) {Service\\\tc{command-parser:80}};
+\node[right=12mm of s,fill=green!10,yshift=6mm] (p1) {Pod 1\\\tc{X-Served-By}};
+\node[right=12mm of s,fill=green!10,yshift=-6mm] (p2) {Pod 2\\\tc{X-Served-By}};
+\node[right=14mm of p1,xshift=4mm,yshift=-6mm,fill=orange!12] (o) {SeaweedFS\\\tc{s3://models/v1}};
+\node[below=6mm of s,fill=gray!12] (h) {HPA 1--2\\70\% CPU};
+\draw[->](c)--(i);\draw[->](i)--(s);\draw[->](s)--(p1);\draw[->](s)--(p2);\draw[->,dashed](o)--(p1);\draw[->,dashed](o)--(p2);\draw[->,dotted](h)--(s);
+\end{tikzpicture}
+\caption{Namespace \tc{app}. Dashed: model download at start-up. Pods become Ready only after the download, so the Service has no ready endpoints while the model loads.}\label{fig:k8s}
+\end{figure}
+\begin{table}[h]\centering\small
+\begin{tabularx}{\textwidth}{@{}l Y@{}}\toprule
+Object (\tc{k8s/app.yaml}) & Configuration \evA (fields verified by unit tests)\\\midrule
+Deployment & 2 replicas; requests 250m / 512\,Mi, limits 1 CPU / 1\,Gi; liveness \tc{/healthz} (delay 20\,s); readiness \tc{/readyz} (period 5\,s, threshold 60, about 5 minutes for the download); RollingUpdate with \tc{maxUnavailable=0}, \tc{maxSurge=1}; \tc{terminationGracePeriodSeconds=30}; Secret-backed S3 credentials; \tc{POD_NAME} via the downward API\\
+Service / Ingress & ClusterIP :80 to container port 8000; Traefik Ingress (\tc{ingressClassName: traefik}) routes \tc{/}, hence \tc{/parse}, to the Service\\
+HPA (autoscaling/v2) & min 1, max 2, CPU utilisation 70\%; scale-down stabilisation 60\,s (default 300\,s) so that scale-down is observable in a short demo\\
+PodDisruptionBudget & \tc{minAvailable: 1}: a node drain can never remove the last ready replica\\\bottomrule
+\end{tabularx}
+\caption{Application manifest.}
+\end{table}
+\textbf{HPA arithmetic} \evC: $\text{desired}=\lceil \text{current}\times \text{utilisation}/\text{target}\rceil$. Under load, 2 replicas at 140\% give $\lceil2\cdot140/70\rceil=4$, clipped to the maximum 2; at idle, 2 replicas at 20\% give $\lceil2\cdot20/70\rceil=1$.
+
+\textbf{Test procedures} \evP, all run while Locust is generating load with a longer \tc{--run-time}: (i) \emph{load balancing} --- with exactly two Ready replicas count \tc{X-Served-By} in \tc{results/loadtest_headers.json}; each replica should serve at least 30\% of the successes; (ii) \emph{rolling update} ---
+\tc{kubectl -n app set env deploy/command-parser MODEL_VERSION=v2 MODEL_URI=s3://models/v2}, target at most 0.5\% failed requests (supported by \tc{maxUnavailable=0} plus readiness gating), then \tc{kubectl rollout undo} and confirm that \tc{X-Model-Version} is v1 again;
+(iii) \emph{recovery} --- delete one Pod under load; the replica count must return to 2 with at most 2\% failures; (iv) \emph{cold start} --- delete all Pods, show the download in the logs, and report the median Pod-creation-to-Ready time over three runs; (v) \emph{HPA} --- watch \tc{kubectl get hpa -w} scale 1 to 2 under load and back.
+\textbf{Limitation (required statement):} the cluster runs on one laptop, so the two ``nodes'' share one machine, one disk and one power supply; this demonstrates Kubernetes self-healing, not fault tolerance across machines. For orientation, another student's recorded cold start was 11\,s in three runs \evR; my reflection reports 18.0\,s \evS (unverified).
+
+\section{Task 5 --- Subnetting and network access control}
+\textbf{Allocation} (largest first, contiguous from 10.20.0.0, smallest prefix $p$ with $2^{32-p}-2\ge h$), reproduced by \tc{scripts/subnet_calc.py} and an independent calculation \evA\evC:
+
+\begin{center}\footnotesize\begin{tabular}{@{}lrllllrl@{}}\toprule
+Subnet & hosts $h$ & Network/prefix & Usable range & Broadcast & Usable & Why this prefix\\\midrule
+app & 1000 & 10.20.0.0/22 & 10.20.0.1--10.20.3.254 & 10.20.3.255 & 1022 & /23 gives 510\\
+public & 250 & 10.20.4.0/24 & 10.20.4.1--10.20.4.254 & 10.20.4.255 & 254 & /25 gives 126\\
+data & 100 & 10.20.5.0/25 & 10.20.5.1--10.20.5.126 & 10.20.5.127 & 126 & /26 gives 62\\
+management & 20 & 10.20.5.128/27 & 10.20.5.129--10.20.5.158 & 10.20.5.159 & 30 & /28 gives 14\\\bottomrule\end{tabular}\end{center}
+Worked example: $\log_2(1000+2)=9.97$, so 10 host bits are needed, giving $p=22$ and $2^{10}-2=1022$ usable hosts.
+
+\textbf{NACL for the public subnet} (\tc{network/nacl.json}; lowest rule number first, first match wins, default deny):
+\begin{center}\small\begin{tabular}{@{}llllll@{}}\toprule
+Dir. & Rule & Protocol/ports & Peer CIDR & Action & Purpose\\\midrule
+in & 100 & all & 198.51.100.0/24 & deny & abusive range; must precede 110/120\\
+in & 110, 120 & tcp 80, 443 & 0.0.0.0/0 & allow & web traffic\\
+in & 130 & tcp 22 & 10.20.5.128/27 & allow & SSH from management only\\
+in & 140 & tcp 1024--65535 & 10.20.0.0/22 & allow & replies from the app subnet\\
+out & 100 & tcp 8000 & 10.20.0.0/22 & allow & load balancer to app pods\\
+out & 110 & tcp 1024--65535 & 0.0.0.0/0 & allow & replies to clients (ephemeral ports)\\\bottomrule\end{tabular}\end{center}
+\textbf{Why replies need their own rules.} A NACL is \emph{stateless}: it does not remember connections, so a reply is a new packet judged on its own and needs an explicit allow on the ephemeral port range; a stateful security group would allow it automatically.
+\textbf{Why order matters.} Because the first match wins, the deny for 198.51.100.0/24 must have a lower number than the allows for ports 80 and 443; if it were numbered above 110, traffic from that range would already have matched the allow. A side effect worth noting: outbound rule 110 also permits TCP 8000 to \emph{any} address, since 8000 lies in 1024--65535.
+\textbf{Evidence.} My own evaluator \tc{tools/nacl_eval.py} decides all 11 hand-written packets as expected (11/11) \evA (\tc{results/nacl_eval_local.txt}). The instructor's \tc{nacl_sim.py} and its six sample packets are not in the repository and were not run \evP.
+
+\section{Task 6 --- Reproducibility, testing and CI/CD}
+\begin{figure}[h]\centering
+\begin{tikzpicture}[node distance=7mm,every node/.style={draw,rounded corners=2pt,font=\scriptsize,align=center,minimum height=8mm,fill=gray!8},>=Stealth]
+\node (a) {\textbf{lint}\\pyflakes};
+\node[right=of a] (b) {\textbf{unit-tests}\\pytest (29)};
+\node[right=of b,fill=blue!8] (c) {\textbf{evaluate}\\download Release asset\\predict + score};
+\node[right=of c,fill=blue!8] (d) {\textbf{quality-gate}\\\tc{score.py --min-validity 95}};
+\node[below=5mm of b] (e) {\textbf{secret-scan}\\gitleaks (runs in parallel)};
+\draw[->](a)--(b);\draw[->](b)--(c);\draw[->](c)--(d);
+\end{tikzpicture}
+\caption{CI stages in the required order. The blue stages are manual (\tc{workflow_dispatch}); they need this project's own model Release and the instructor's \tc{score.py}.}
+\end{figure}
+\textbf{Reproducible build.} \tc{make up} runs \tc{scripts/deploy.sh}: create the k3d cluster, namespaces and Secrets from \tc{.env} (never committed; \tc{.env.example} contains development-only values), deploy SeaweedFS, build and import both images, and apply the manifests. Models must already be in \tc{s3://models}. \tc{make down} deletes the cluster.
+\textbf{Tests} (29 passing \evA): service API (5), sharding, cleaning and cleaning CLI, prompt consistency, training-config completeness, demo server, subnets, NACL, manifest fields, reliability objects, CI stage order, cost and SLO arithmetic.
+\textbf{Quality gate.} \tc{score.py --min-validity 95} exits non-zero below 95\% JSON validity. \emph{Showing the gate working} requires a workflow run with the untrained model (\tc{workflow_dispatch}, \tc{model_source=base}) and its URL in the report \evP; no such run exists.
+Another student's trained model measured 90\% validity \evR and would itself fail the gate --- a reminder that a 70M model without constrained decoding may need more data, prompt changes or grammar-constrained decoding to reach 95\%.
+\textbf{Security.} Secrets live only in Kubernetes and CI secrets; \tc{.gitignore} excludes weights and \tc{.env}; the submission build script scans every file for common key patterns (0 matches \evA). That scan is not gitleaks, which has not been run \evP. Known limitation: one shared S3 identity for all components.
+
+\section{Task 7 --- Performance, cost, SLO and review}
+\textbf{Procedure} \evP. Standard run: \tc{locust -f tools/locustfile.py --headless --users 4 --spawn-rate 4 --run-time 2m --host http://localhost:8080 --csv results/loadtest}. Report p50 and p95 (\tc{loadtest_stats.csv}), throughput (req/s), error rate (failures divided by requests; a failure is anything but HTTP 200 within 30\,s),
+per-Pod CPU and memory from \tc{kubectl top pods} sampled during the run, and the cold-start median from Task 4. Targets: error rate at most 1\%, p95 at most 5{,}000\,ms.
+
+\textbf{Cost method.} $C_h = r\,(c\,P_{\text{cpu}} + m\,P_{\text{mem}})$ with $r$ replicas billed at their CPU and memory \emph{limits}, and $\text{cost per 1000 req}=C_h / (3600\cdot\text{rps})\times 1000$.
+With the exercise prices (3.50 INR per vCPU-hour, 0.45 INR per GiB-hour; hypothetical, as quoted for the exercise rate card by a reference report and consistent with my reflection's 7.90 INR/h) and 2 replicas of 1 vCPU and 1\,GiB: $C_h = 2(3.50+0.45)=7.90$ INR/h \evC.
+Figure~\ref{fig:cost} shows how the answer depends on throughput; \textbf{the throughput values are hypothetical, so every cost-per-1000 value below is a worked example \evI, not my service's cost.}
+
+\begin{figure}[h]\centering
+\begin{tikzpicture}
+\begin{axis}[width=0.6\textwidth,height=4.4cm,xlabel={throughput (requests/s)},ylabel={INR per 1000 requests},xmin=0.2,xmax=1.2,ymin=0,ymax=10,grid=major,tick label style={font=\scriptsize},label style={font=\scriptsize},every axis plot/.append style={thick}]
+\addplot[blue,domain=0.2:1.2,samples=60]{7.9/(3600*x)*1000};
+\addplot[only marks,mark=*,red] coordinates {(0.25,8.7778)(0.5,4.3889)(0.57,3.8499)(0.75,2.9259)(1.0,2.1944)};
+\end{axis}
+\end{tikzpicture}
+\hfill
+\begin{minipage}[b]{0.34\textwidth}\small
+\begin{tabular}{@{}rrr@{}}\toprule
+rps & req/h & INR/1000\\\midrule
+0.25 & 900 & 8.78\\ 0.50 & 1800 & 4.39\\ 0.57 & 2052 & 3.85\\ 0.75 & 2700 & 2.93\\ 1.00 & 3600 & 2.19\\\bottomrule\end{tabular}
+\end{minipage}
+\caption{Cost per 1000 requests $=7.90/(3600\,\text{rps})\times1000$ \evC\evI; values from \tc{results/cost_slo_worked_examples.txt}.}\label{fig:cost}
+\end{figure}
+
+\textbf{SLO and error budget.} SLO: \emph{``99\% of requests succeed within one load-test run''} (window = one 2-minute run); error budget $=(1-0.99)N$. Worked examples \evI (request counts hypothetical): for $N=1000$ the budget is 10 requests; 7 failures use 70\% of it (met) and 25 failures use 250\% (not met). For $N=254$ the budget is 2.54 requests, so 3 failures use 118\% (not met) \evC.
+
+\textbf{Review table.} Each evidence cell holds a number with its evidence tag; where no measurement of the deployed service exists yet, the best available actual or calculated figure is given and the row says so.
+\begin{table}[h]\centering\footnotesize
+\begin{tabularx}{\textwidth}{@{}l Y Y Y@{}}\toprule
+Concern & Evidence (number, type) & Limitation found & Improvement\\\midrule
+Data and storage & 3{,}000 commands split 1{,}500 + 1{,}500 \evC; SeaweedFS 2\,GiB PVC, 1.5\,GiB limit \evA (manifest) & single replica, ReadWriteOnce PVC; an OOM during uploads is reported \evS & replicated volume; multipart uploads\\
+Model quality & no score of my model exists; reference student: 90\% validity, 41\% full-frame \evR & 70M model without constrained decoding; the 95\% gate is not guaranteed & more and cleaner data; JSON-grammar decoding; compare v2\\
+Latency and throughput & stub service: 209 req in 20\,s, 11.0 req/s, p95 16\,ms \evA (framework overhead only); reference service p95 16\,s \evR & the stub excludes inference, so no service latency exists & run the standard test; profile \tc{generate()}; cap \tc{MAX_NEW_TOKENS}\\
+Resource utilisation & requests 250m/512\,Mi, limits 1 CPU/1\,GiB \evA; weights about 0.28\,GB \evC; reference peak 556\,MiB per pod \evR & inference is CPU-bound, so the HPA reacts only near saturation & tune limits from \tc{kubectl top}; quantise\\
+Reliability and recovery & 2 replicas, \tc{maxUnavailable=0}, PDB \tc{minAvailable=1} \evA; reported recovery 18.93\,s \evS & single laptop: no node-failure tolerance & multi-node cluster; pre-hydrated model volume to cut cold start\\
+Security and cost & 0 secret-pattern matches in the ZIP scan \evA; 7.90 INR/h for 2 replicas \evC & shared S3 identity; no TLS; stateless NACL only & per-service credentials, TLS, network policies\\\bottomrule
+\end{tabularx}
+\caption{Six-row review.}
+\end{table}
+
+\section{Student-reported figures (unverified)}
+The following come from my handwritten reflection (\tc{reflection/230103030.pdf}). \textbf{No logs, CSV or command output exist in this project for them, and none were created.} They are shown as reported \evS and must not be read as measurements.
+\begin{center}\small\begin{tabularx}{\textwidth}{@{}l l Y@{}}\toprule
 Item & Reported & Status\\\midrule
 Pod recovery under load & 18.93\,s & reported, unverified\\
-Dropped connections during recovery & Zero & reported, unverified\\
-Traffic split across replicas & 53.4\% / 46.6\% & reported, unverified\\
+Dropped connections during recovery & zero & reported, unverified\\
+Traffic split across replicas & 53.4\% / 46.6\% & reported, unverified (both at least 30\%)\\
 Cold start & 18.0\,s & reported, unverified\\
-Deployment cost (2 replicas) & 7.90 INR/h & reported, unverified\\
-Throughput & 2,052 requests/h & reported, unverified\\
-Cost per 1,000 requests & 3.95 INR & reported; arithmetic mismatch\\\bottomrule\end{tabular}\end{center}
-\textbf{Discrepancy for review.} $7.90/2052\times1000=3.85$ INR per 1,000 requests, not 3.95. A value of 3.95 would correspond to 2,000 requests/h, and 3.95 also equals $7.90/2$, the hourly cost of one replica (\tc{results/cost\_arithmetic\_check.txt}; arithmetic only).
-\textbf{Findings reported in the reflection (not verified here).} Deleting an active pod under load: recovery within 18.93\,s, zero dropped connections, traffic evenly distributed (53.4\%, 46.6\%), taken as high availability. Dual-replica cost 7.9 INR/hr at 2052 requests/hr, taken as cost-effective (but see the arithmetic mismatch above). Proposed improvements: pre-hydrated persistent volumes (shared ReadWriteMany volume, safetensors \tc{mmap = True}) to reduce the 18.0\,s cold start, and Cilium eBPF network policies instead of stateless NACLs. The reflection concludes the system is reliable, cost-efficient and scalable; this is a conclusion from the unverified figures, not a result established by this project.
-\textbf{Configuration described in the reflection:} \tc{OLLAMA\_HOST=0.0.0.0:11434}, \tc{OLLAMA\_NUM\_PARALLEL=2}, Flash Attention enabled; SeaweedFS with a 2\,GiB PVC and 1.5\,GiB memory limit (in my own manifest \tc{cluster/seaweedfs.yaml}). The described connection-refused and out-of-memory events, and the original \tc{k8s/data/seaweedfs.yaml}, were not provided and are unverified. See \tc{results/REPORTED\_FIGURES.md}.
+Cost (2 replicas) and throughput & 7.90 INR/h; 2{,}052 req/h & 7.90 reproduced by calculation \evC\\
+Cost per 1{,}000 requests & 3.95 INR & \textbf{arithmetic mismatch}: $7.90/2052\times1000=3.85$ \evC\\\bottomrule\end{tabularx}\end{center}
+3.95 would correspond to 2{,}000 req/h or to the hourly cost of one replica ($7.90/2$) (\tc{results/cost_arithmetic_check.txt}); the discrepancy is flagged for correction rather than silently changed. The reflection also proposes pre-hydrated persistent volumes
+(a shared ReadWriteMany volume, safetensors \tc{mmap}) to cut cold start, and Cilium eBPF network policies in place of stateless NACLs; both are proposals, not tested changes.
 
-\section*{10. Limitations and references}
-No machine with Docker, k3d or Ollama and no student\_kit were available; Tasks 1, 2, 7 and all cluster/CI behaviour are unverified.
-References: Kim and Rush, \emph{Sequence-Level Knowledge Distillation}, 2016; Hinton et al., \emph{Distilling the Knowledge in a Neural Network}, 2015; Biderman et al., \emph{Pythia}, 2023; Kubernetes, k3d, FastAPI, Locust, AWS VPC (NACL) and Google SRE Book documentation.
+\section{Reference material, provenance and AI use}
+The structure of the public NanoParse report (\tc{rahul-singh92/NanoParse}; overview, data and evaluation, deployment, networking, CI, load test, review) was used as a \emph{guide to what a complete report covers}. Its text, code and numbers are not mine; its figures appear here only as clearly tagged \evR context.
+Its release v1.0 contained two Pythia-70M archives. I once re-hosted them in this repository's Release and later \textbf{removed} them because redistribution permission could not be established (no licence file, no written permission). The \emph{original} checksum manifests are retained for attribution only:
+pythia-70m-v1.tar.gz \tc{3b098817}\ldots\tc{febab47bfe}, pythia-70m-v2.tar.gz \tc{47ce600a}\ldots\tc{14b01117} \evR (full values in \tc{docs/RELEASE_METADATA.md}). No model archive generated by this project exists yet.
+Claude Code (Anthropic) assisted with code, tests, documentation and this report; what it did and how I checked it is in \tc{AI_USE.md}.
+
+\section{Limitations and next steps}
+\textbf{Not done:} teacher labelling, any training, image build, cluster deployment and every Task 4 and Task 7 measurement, CI runs and the failing-gate run, the instructor's \tc{score.py}, \tc{nacl_sim.py} and kit data (not available to me), and gitleaks.
+\textbf{Next steps, in order:} obtain the kit; run \tc{make up}, label, clean and train v1 and v2; publish my own archives with SHA-256 values; score three models; run the standard load test; fill \tc{results/}; trigger the failing and the passing quality-gate runs; rebuild the ZIP from the \tc{final} tag.
+\textbf{Reproducing the demonstration without infrastructure:} \tc{make check} (lint, 29 tests, NACL, subnets), \tc{make demo} followed by \tc{curl}, and \tc{make cost RPS=0.57} or \tc{make slo REQUESTS=1000 FAILED=7} (see \tc{docs/SETUP.md}).
+
+\clearpage
+\appendix
+\section*{Appendix A --- Evidence index}
+\small
+\begin{tabularx}{\textwidth}{@{}l c Y@{}}\toprule
+File & Class & Content\\\midrule
+\tc{results/pytest_local.txt} & \evA & 29 tests passed, pyflakes clean\\
+\tc{results/nacl_eval_local.txt}, \tc{results/subnet_calc_local.txt} & \evA & 11/11 packets; subnet plan\\
+\tc{results/demo_api_stub.txt} & \evA & real app with stub model: endpoints, headers, \tc{FAULT_INJECT}\\
+\tc{results/stub_smoke_*} & \evA & Locust toolchain smoke test against the stub (not a service result)\\
+\tc{results/cost_slo_worked_examples.txt} & \evC\evI & cost and SLO arithmetic with hypothetical throughput and counts\\
+\tc{results/cost_arithmetic_check.txt} & \evC & check of the reflection's cost figure\\
+\tc{results/REPORTED_FIGURES.md} & \evS & figures from the handwritten reflection\\\bottomrule
+\end{tabularx}
+
+\section*{Appendix B --- Commands}
+{\footnotesize
+\begin{tabularx}{\textwidth}{@{}l Y@{}}\toprule
+Goal & Command\\\midrule
+Checks without infrastructure & \tc{make check} (runs lint, test, nacl, subnets)\\
+Local API demo (stub) & \tc{make demo}, then \tc{curl -X POST localhost:8000/parse -H 'Content-Type: application/json' -d '{"text":"what is the weather in london"}'}\\
+Full system (needs Docker, k3d) & \tc{cp .env.example .env}, then \tc{make up}\\
+Label, clean, train, evaluate & \tc{make label}, \tc{make clean-data}, \tc{make train SUBSET=50}, \tc{make train}, \tc{make eval}\\
+Load test, cost, SLO & \tc{make load}; \tc{make cost RPS=<measured>}; \tc{make slo REQUESTS=<n> FAILED=<f>}\\
+Teardown & \tc{make down}\\\bottomrule
+\end{tabularx}}
+
+\section*{References}
+{\footnotesize
+Kim and Rush, \emph{Sequence-Level Knowledge Distillation}, EMNLP 2016. Hinton et al., \emph{Distilling the Knowledge in a Neural Network}, 2015. Biderman et al., \emph{Pythia}, ICML 2023. Bastianelli et al., \emph{SLURP}, EMNLP 2020 (CC BY 4.0).
+Kubernetes (Deployments, Probes, HPA, PodDisruptionBudget), k3d, SeaweedFS, FastAPI, Locust, Ollama, AWS VPC Network ACLs and the Google SRE Book (Service Level Objectives) documentation.
+Reference report: R.\ S.\ Jadoun, NanoParse assignment report, \url{https://github.com/rahul-singh92/NanoParse} (context only).}
 \end{document}

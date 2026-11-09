@@ -10,3 +10,12 @@ max_seq_len: 128
 train_limit: 1500        # first 1,500 cleaned records only
 train_file: datasets/v1/train.jsonl
 output_dir: training/output
+# Library versions the run is intended for (pinned in training/requirements.txt). train.py also records the versions it actually
+# imported in training/output/<version>/run_info.json.
+libraries:
+  python: "3.11"
+  torch: "2.4.1"
+  transformers: "4.44.2"
+  tokenizers: "0.19.1"
+  numpy: "1.26.4"
+  pyyaml: "6.0.2"

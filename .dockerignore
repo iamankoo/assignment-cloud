@@ -1,0 +1,15 @@
+.git
+.github
+.env
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+models
+training/output
+datasets
+results
+reflection
+report
+docs
+tests

@@ -5,6 +5,7 @@ Credentials (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY) come from a Kubernetes S
 The model is downloaded from object storage at start-up; weights are not in the image.
 """
 import json
+import logging
 import os
 import pathlib
 import threading
@@ -17,6 +18,7 @@ from pydantic import BaseModel
 SCHEMA = json.loads((pathlib.Path(__file__).parent / "schema.json").read_text())
 PROMPT = "Command: {text}\nJSON:"
 
+log = logging.getLogger("command-parser")
 app = FastAPI()
 _state = {"ready": False, "generate": None}
 
@@ -56,10 +58,18 @@ def _load_model():
     _state["ready"] = True
 
 
+def _load_guarded():
+    """Load in a background thread; a failure keeps /readyz at 503 and is logged instead of silently killing the thread."""
+    try:
+        _load_model()
+    except Exception:
+        log.exception("model load failed; service stays not-ready")
+
+
 @app.on_event("startup")
 def _startup():
     if os.environ.get("MODEL_URI"):  # tests inject _state["generate"] directly
-        threading.Thread(target=_load_model, daemon=True).start()
+        threading.Thread(target=_load_guarded, daemon=True).start()
 
 
 @app.get("/healthz")

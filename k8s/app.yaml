@@ -19,6 +19,7 @@ spec:
     metadata:
       labels: {app: command-parser}
     spec:
+      terminationGracePeriodSeconds: 30
       containers:
         - name: service
           image: command-parser:v1
@@ -63,6 +64,7 @@ metadata:
   name: command-parser
   namespace: app
 spec:
+  ingressClassName: traefik   # bundled with k3s
   rules:
     - http:
         paths:
@@ -80,8 +82,21 @@ spec:
   scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: command-parser}
   minReplicas: 1
   maxReplicas: 2
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 60   # shorter than the 300 s default so scale-down is observable in a short demo
   metrics:
     - type: Resource
       resource:
         name: cpu
         target: {type: Utilization, averageUtilization: 70}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: command-parser
+  namespace: app
+spec:
+  minAvailable: 1        # voluntary disruptions (e.g. a node drain) may never remove the last ready replica
+  selector:
+    matchLabels: {app: command-parser}
