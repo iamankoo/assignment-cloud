@@ -20,7 +20,7 @@ Command-Parser Distillation on a Local Cloud is a lightweight natural-language c
 | Illustrative | Example used to explain a method |
 | Reported | Value recorded in the project reflection |
 | Planned | Implementation or experiment not yet executed |
-| Reference | Value from supplied reference material; not executed in this repository |
+| Supplied | Value supplied and confirmed by the student; underlying logs and model files are not in this repository |
 
 ## Status by task
 
@@ -57,19 +57,22 @@ These come from `reflection/230103030.pdf`. **No supporting logs exist here and 
 **Discrepancy for review:** 7.90 INR/hour at 2,052 requests/hour gives 7.90 / 2,052 x 1,000 = **3.85 INR per 1,000 requests**, not 3.95. 3.95 would correspond to 2,000 requests/hour, and it equals the hourly cost of one replica (7.90 / 2). See `results/REPORTED_FIGURES.md` and `results/cost_arithmetic_check.txt` (arithmetic only).
 The reflection's proposed improvements (pre-hydrated persistent volumes, safetensors `mmap`, Cilium eBPF network policies) and its conclusion that the system is "reliable, cost-efficient and scalable" are proposals/conclusions drawn from those unverified figures. Configuration it describes: `OLLAMA_HOST=0.0.0.0:11434`, `OLLAMA_NUM_PARALLEL=2`, `OLLAMA_FLASH_ATTENTION=true` (`docs/SETUP.md`); SeaweedFS with a 2 GiB PVC and 1.5 GiB limit (`cluster/seaweedfs.yaml`, my own manifest). A typed transcription is in `docs/REFLECTION_DRAFT.md`.
 
-## Reference results (supplied; not executed in this repository)
+## Data preparation and model evaluation (supplied results)
 
-These values were supplied as reference material and are shown exactly as supplied. They are **not** measurements of this repository: no log, score file or checksum for them exists here.
-Full tables: [`docs/REFERENCE_RESULTS.md`](docs/REFERENCE_RESULTS.md); source: [`docs/PROVENANCE.md`](docs/PROVENANCE.md).
+Supplied and confirmed by the student, reproduced exactly. The underlying logs, score files and model archives are not stored in this repository, and these runs were not re-executed here. Details: [`docs/EVALUATION_RESULTS.md`](docs/EVALUATION_RESULTS.md).
 
-| Area | Reference value |
-|---|---|
-| Cleaning (3,000 inputs) | 1 invalid JSON, 57 wrong keys, 610 invalid slots, 40 duplicates; 2,292 retained |
-| Validation (teacher / v1 / v2) | JSON validity 94% / 90% / 89%; full-frame 44% / 41% / 42% |
-| Container | ARM64 image about 1.66 GB; peak memory about 737.4 MiB; no OOM kill |
-| Kubernetes | cold start 11 s (three runs); NACL simulator 6 of 6 packets |
-| Load test | 89 requests, 78 successes, 11 failures; error rate 12.36%; median 3,700 ms; p95 16,000 ms; 0.748 req/s; replicas served 41 / 37 |
-| Cost | 7.90 per hour (two replicas); about 2.93 per 1,000 attempted requests |
+**Data preparation:** teacher-generated dataset of 3,000 examples; cleaning checked JSON syntax, required keys, slot validity and duplicates; the v1 cleaned training set has **2,292** examples. Exclusions include invalid JSON output, invalid-slot examples and duplicates (detailed per-category counts are not stated).
+
+| Validation metric (100 examples) | Teacher Phi-3.5 | Student v1 | Student v2 |
+|---|---:|---:|---:|
+| JSON validity | 94% | 90% | 89% |
+| Intent accuracy | 85% | 75% | 76% |
+| Date accuracy | 71% | 68% | 69% |
+| Time accuracy | 79% | 76% | 79% |
+| Place accuracy | 81% | 77% | 71% |
+| Full-frame accuracy | 44% | 41% | 42% |
+
+Infrastructure experiments (Docker build, cluster deployment, CI runs, load test) are still planned.
 
 ## Architecture
 
@@ -100,10 +103,16 @@ Monitoring: Locust and kubectl top
 
 ## Technology Stack
 
-- **Student model:** EleutherAI/Pythia-70M (Apache-2.0) · **Teacher:** Ollama Phi-3.5 Mini Instruct (temperature 0, seed 42)
-- **ML framework:** PyTorch and Transformers · **API:** FastAPI and Uvicorn
-- **Object storage:** SeaweedFS (S3-compatible) · **Containers:** Docker (non-root, CPU-only torch)
-- **Orchestration:** Kubernetes using k3d · **Load testing:** Locust · **CI/CD:** GitHub Actions (pyflakes, pytest, evaluate, quality gate, Gitleaks)
+| Layer | Technology |
+|---|---|
+| Teacher / data generation | Ollama Phi-3.5 |
+| Student / ML | EleutherAI Pythia-70M, PyTorch, Transformers |
+| API | FastAPI and Uvicorn |
+| Storage | SeaweedFS S3-compatible object storage |
+| Orchestration | Docker, Kubernetes, k3d, Helm |
+| Testing / automation | unittest, Ruff, GitHub Actions, Gitleaks, Locust |
+
+Local checks in this repository currently run with pytest and pyflakes, and the cluster is deployed with `kubectl` manifests (no Helm chart, unittest or Ruff configuration is included).
 
 ## Repository Structure
 

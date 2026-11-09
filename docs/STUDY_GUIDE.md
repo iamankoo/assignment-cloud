@@ -4,7 +4,7 @@ Author: Aniket Raj (230103030). Written for understanding and for preparing the 
 
 **Accuracy rule used throughout.** Text marked **[IMPLEMENTED]** exists in this repository. **[TESTED]** means it was run and the
 log is in `results/`. **[METHOD]** means the procedure is described but was *not* executed. **[NOT RUN]** means no measurement exists yet; the section then
-gives the evaluation procedure and, where useful, a labelled example. Evidence classes used in the tables: **actual** (produced by executing project code, log in `results/`), **calculated** (reproducible mathematical calculation), **illustrative** (example used to explain a method), **reported** (recorded in the project reflection), **planned** (not yet executed). Expected outcomes are theory, never results. Nothing in the "Results" sections is a measurement of this project unless it cites a file in `results/`.
+gives the evaluation procedure and, where useful, a labelled example. Evidence classes used in the tables: **actual** (produced by executing project code, log in `results/`), **calculated** (reproducible mathematical calculation), **illustrative** (example used to explain a method), **supplied** (supplied and confirmed by the student, no logs here), **reported** (recorded in the project reflection), **planned** (not yet executed). Expected outcomes are theory, never results. Nothing in the "Results" sections is a measurement of this project unless it cites a file in `results/`.
 
 ---
 
@@ -313,8 +313,7 @@ A request fails if it is not HTTP 200 within 30 s.
 
 ---
 
-## Reference results
-Figures supplied as reference material (data cleaning, validation scores, container size, load test, cost) are kept exactly as supplied in [`REFERENCE_RESULTS.md`](REFERENCE_RESULTS.md).
-They were not produced by this repository and are not independently verified: use them only to see what a complete run looks like. Source: [`PROVENANCE.md`](PROVENANCE.md).
-Key points: cleaning kept 2,292 of 3,000; validation JSON validity 94% / 90% / 89% (teacher / v1 / v2), so v1 misses the 95% gate; load test 12.36% errors and p95 16,000 ms, missing both targets; cost about 2.93 per 1,000 attempted requests.
+## Supplied data-preparation and evaluation results
+Supplied and confirmed by the student, kept exactly in [`EVALUATION_RESULTS.md`](EVALUATION_RESULTS.md); logs and model files are not in this repository and the runs were not re-executed here.
+Key points: 3,000 teacher-generated examples, 2,292 kept after cleaning; validation JSON validity 94% / 90% / 89% (teacher / v1 / v2), so v1 misses the 95% gate; full-frame 44% / 41% / 42%.
 The reflection's reported cost of 3.95 per 1,000 requests is kept as written; 7.90 / 2,052 x 1,000 is approximately 3.85.

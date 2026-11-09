@@ -14,7 +14,8 @@ It separates what is done from what still needs execution; it is not a claim tha
 - DONE Release: one Release only (latest) with the source ZIP and checksum; no model archives (`docs/RELEASE_METADATA.md`).
 - DONE Security checks: no secrets, `.env`, weights or temp files in the repository or ZIP (build-script pattern scan; gitleaks itself not run).
 
-- DONE Supplied reference results preserved exactly and labelled (`docs/REFERENCE_RESULTS.md`); reflection cost figure 3.95 kept with the 3.85 calculation note.
+- DONE Supplied data-preparation and evaluation results recorded exactly and labelled (`docs/EVALUATION_RESULTS.md`); reflection cost figure 3.95 kept with the 3.85 calculation note.
+- OPEN Raw logs, score files and model archives behind the supplied results are not in the repository.
 
 ## B. Outstanding assignment requirements (nothing below has been run; no evidence exists)
 | Task | Still needed |
