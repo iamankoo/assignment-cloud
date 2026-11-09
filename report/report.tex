@@ -13,7 +13,7 @@
 \captionsetup{font=small,labelfont=bf,skip=3pt}
 \renewcommand{\arraystretch}{1.12}
 \pagestyle{fancy}\fancyhf{}
-\fancyhead[L]{\small CS3081 Mini Project --- Technical Report (mock demonstration)}
+\fancyhead[L]{\small CS3081 Cloud Computing Mini Project --- Technical Report}
 \fancyhead[R]{\small Aniket Raj \textperiodcentered{} 230103030}
 \fancyfoot[C]{\small\thepage}
 \renewcommand{\headrulewidth}{0.3pt}
@@ -38,7 +38,7 @@
 \textbf{Aniket Raj} \textperiodcentered{} roll no.\ \textbf{230103030} \textperiodcentered{} GitHub \tc{iamankoo} \textperiodcentered{} \url{https://github.com/iamankoo/Cloud-Assignment}
 
 \fcolorbox{black!40}{gray!10}{\parbox{\dimexpr\textwidth-2\fboxsep-2\fboxrule}{\small
-\textbf{Status of this document.} This is a \emph{mock demonstration} report for preliminary teacher evaluation, not the graded submission. It describes a complete
+\textbf{Status of this document.} This report describes the complete
 design and implementation for all seven tasks and the procedure for evaluating each one. \textbf{The expensive experiments (teacher labelling, student training, Docker build,
 cluster deployment, load test, CI runs) have not been executed}; no result in this report was fabricated to fill that gap. Every number carries an evidence tag:\\[2pt]
 \evA~\textbf{Actual}: produced by running code in this repository; log in \tc{results/}. \quad
@@ -78,7 +78,7 @@ distillation} (Kim and Rush, 2016) --- and only the student is deployed behind a
 Task & Implementation (repository path) & Evidence level in this report\\\midrule
 1 & \tc{worker/}, \tc{k8s/worker-job.yaml}, \tc{cluster/}, \tc{prompts/} & sharding and cleaning logic unit-tested on toy records \evA; labelling run \evP\\
 2 & \tc{training/}, \tc{tools/predict.py} & config and code reviewed, config completeness tested \evA; training \evP\\
-3 & \tc{service/}, \tc{tools/demo_server.py} & 29-test suite \evA; stub-model API demo and Locust toolchain smoke test \evA; Docker build \evP\\
+3 & \tc{service/}, \tc{tools/demo_server.py} & 32-test suite \evA; stub-model API demo and Locust toolchain smoke test \evA; Docker build \evP\\
 4 & \tc{k8s/app.yaml} & manifest fields unit-tested \evA; cluster behaviour \evP\\
 5 & \tc{network/}, \tc{scripts/subnet_calc.py}, \tc{tools/nacl_eval.py} & subnet plan and 11/11 packets \evA\\
 6 & \tc{.github/workflows/ci.yml}, \tc{Makefile}, \tc{tests/} & stage order and gate logic tested statically \evA; no CI run \evP\\
@@ -117,10 +117,10 @@ teacher's best sequence $y^{*}$ (prompt tokens masked with $-100$):
 \[\mathcal{L}(\theta)=-\sum_{t=1}^{T}\log p_\theta\!\left(y^{*}_t \mid x,\,y^{*}_{<t}\right).\]
 \textbf{Configuration} (\tc{training/config.yaml}, read by \tc{make train}; values are \evP): seed 42 (\tc{random} and \tc{torch}), learning rate $5\!\times\!10^{-5}$ (AdamW, weight decay 0.01, gradient clipping 1.0), batch size 8, 3 epochs, max length 128, first 1{,}500 cleaned records
 (188 steps per epoch, 564 in total \evC), CPU, library versions pinned (torch 2.4.1, transformers 4.44.2, tokenizers 0.19.1, numpy 1.26.4, PyYAML 6.0.2). \tc{make train SUBSET=50} runs the same code on 50 records as a smoke test.
-Outputs: \tc{training/loss.csv} (one value per epoch), \tc{model.safetensors} and tokenizer, \tc{model.sha256} and \tc{run_info.json} (actual library versions) under \tc{training/output/<version>/}; \tc{scripts/upload.py} copies the directory to \tc{s3://models/v1}.
+Outputs: \tc{training/loss.csv} (one value per epoch), \tc{model.safetensors} and tokenizer, \tc{model.sha256} and \tc{run_info.json} (actual library versions) under \tc{training/output/<version>/}; \tc{scripts/upload.py} copies the directory to \tc{s3://models/v1}, and \tc{make package} (\tc{scripts/package_model.py}) builds a deterministic \tc{v1.tar.gz} with its \tc{.sha256} and \tc{release_manifest.json}; it refuses to run without trained weights, so no empty archive or invented checksum can be produced (tested \evA).
 The second version (v2) differs by one recorded setting (another seed via \tc{--seed}, or an extra epoch) and is the target of the rolling update in Task 4.
 
-\textbf{Evaluation protocol.} The instructor's \tc{score.py} is run on \tc{validation.jsonl} (100 commands, never trained on) for three raw-output files: the teacher (same prompt and options as Task 1), the untrained Pythia-70M, and the student.
+\textbf{Evaluation protocol.} The instructor's \tc{score.py} is run on \tc{validation.jsonl} (100 commands, never trained on) for three raw-output files: the teacher (\tc{tools/predict_teacher.py}: same prompt file and options as Task 1), the untrained Pythia-70M, and the student.
 Reported: JSON validity, intent/date/time/place accuracy and full-frame. Expected qualitative outcome \evP: the untrained model scores near 0\% validity; the student improves sharply but cannot exceed the teacher's slot accuracy, because it imitates the teacher's \emph{errors} too.
 For orientation only, another student's published run \evR reports teacher / student v1 / student v2 JSON validity of 94\% / 90\% / 89\% and full-frame accuracy of 44\% / 41\% / 42\%; those numbers are not mine and do not predict my result.
 The assignment's four-record scoring example (V001--V004) yields validity 75, intent 50, date 50, time 75, place 75 and full-frame 25 \evC (derived by hand from the specification).
@@ -149,7 +149,7 @@ the distributions cannot be aligned token by token. \textbf{Limitation of my app
 \textbf{Container.} \tc{python:3.11-slim}, CPU-only \tc{torch==2.4.1} from the PyTorch CPU index (the default wheels pull GPU libraries), every other dependency pinned, no weights in the image, non-root user (uid 10001), and a \tc{.dockerignore} that keeps data, models and results out of the build context.
 Size limit: 2\,GB. The fp32 weights alone are about $70.4\text{M}\times4\,\text{B}\approx0.28$\,GB \evC, which is why they live in object storage and are fetched at start-up.
 
-\textbf{What was actually run.} The 29-test suite (API success and headers, bad intent, extra key, \tc{FAULT_INJECT}, health and ready, cleaning, sharding, manifests, CI order, cost, SLO) passes \evA (\tc{results/pytest_local.txt}).
+\textbf{What was actually run.} The 32-test suite (API success and headers, bad intent, extra key, \tc{FAULT_INJECT}, health and ready, cleaning, sharding, manifests, CI order, cost, SLO) passes \evA (\tc{results/pytest_local.txt}).
 \tc{tools/demo_server.py} runs the \emph{real} \tc{app.py} with a keyword-rule \textbf{stub} instead of Pythia-70M: \tc{/healthz} returned 200, \tc{/readyz} 200, a valid \tc{/parse} carried both headers, and \tc{FAULT_INJECT=1} gave HTTP 500 with the exact error body \evA (\tc{results/demo_api_stub.txt}).
 A 20\,s Locust run (4 users) against the stub completed 209 requests with 0 failures at 11.0 req/s \evA. This only proves that the Locust file, header counting and CSV output work; it says nothing about the real service \textbf{(stub, not a performance result)}.
 
@@ -214,7 +214,7 @@ out & 110 & tcp 1024--65535 & 0.0.0.0/0 & allow & replies to clients (ephemeral 
 \begin{figure}[h]\centering
 \begin{tikzpicture}[node distance=7mm,every node/.style={draw,rounded corners=2pt,font=\scriptsize,align=center,minimum height=8mm,fill=gray!8},>=Stealth]
 \node (a) {\textbf{lint}\\pyflakes};
-\node[right=of a] (b) {\textbf{unit-tests}\\pytest (29)};
+\node[right=of a] (b) {\textbf{unit-tests}\\pytest (32)};
 \node[right=of b,fill=blue!8] (c) {\textbf{evaluate}\\download Release asset\\predict + score};
 \node[right=of c,fill=blue!8] (d) {\textbf{quality-gate}\\\tc{score.py --min-validity 95}};
 \node[below=5mm of b] (e) {\textbf{secret-scan}\\gitleaks (runs in parallel)};
@@ -223,7 +223,7 @@ out & 110 & tcp 1024--65535 & 0.0.0.0/0 & allow & replies to clients (ephemeral 
 \caption{CI stages in the required order. The blue stages are manual (\tc{workflow_dispatch}); they need this project's own model Release and the instructor's \tc{score.py}.}
 \end{figure}
 \textbf{Reproducible build.} \tc{make up} runs \tc{scripts/deploy.sh}: create the k3d cluster, namespaces and Secrets from \tc{.env} (never committed; \tc{.env.example} contains development-only values), deploy SeaweedFS, build and import both images, and apply the manifests. Models must already be in \tc{s3://models}. \tc{make down} deletes the cluster.
-\textbf{Tests} (29 passing \evA): service API (5), sharding, cleaning and cleaning CLI, prompt consistency, training-config completeness, demo server, subnets, NACL, manifest fields, reliability objects, CI stage order, cost and SLO arithmetic.
+\textbf{Tests} (32 passing \evA): service API (5), sharding, cleaning and cleaning CLI, prompt consistency, training-config completeness, demo server, subnets, NACL, manifest fields, reliability objects, CI stage order, cost and SLO arithmetic.
 \textbf{Quality gate.} \tc{score.py --min-validity 95} exits non-zero below 95\% JSON validity. \emph{Showing the gate working} requires a workflow run with the untrained model (\tc{workflow_dispatch}, \tc{model_source=base}) and its URL in the report \evP; no such run exists.
 Another student's trained model measured 90\% validity \evR and would itself fail the gate --- a reminder that a 70M model without constrained decoding may need more data, prompt changes or grammar-constrained decoding to reach 95\%.
 \textbf{Security.} Secrets live only in Kubernetes and CI secrets; \tc{.gitignore} excludes weights and \tc{.env}; the submission build script scans every file for common key patterns (0 matches \evA). That scan is not gitleaks, which has not been run \evP. Known limitation: one shared S3 identity for all components.
@@ -283,14 +283,14 @@ Cost per 1{,}000 requests & 3.95 INR & \textbf{arithmetic mismatch}: $7.90/2052\
 
 \section{Reference material, provenance and AI use}
 The structure of the public NanoParse report (\tc{rahul-singh92/NanoParse}; overview, data and evaluation, deployment, networking, CI, load test, review) was used as a \emph{guide to what a complete report covers}. Its text, code and numbers are not mine; its figures appear here only as clearly tagged \evR context.
-Its release v1.0 contained two Pythia-70M archives. I once re-hosted them in this repository's Release and later \textbf{removed} them because redistribution permission could not be established (no licence file, no written permission). The \emph{original} checksum manifests are retained for attribution only:
+Its release v1.0 contained two Pythia-70M archives. I once re-hosted them in an earlier Release of this repository and later \textbf{removed} that Release and its tag because redistribution permission could not be established (no licence file, no written permission). The \emph{original} checksum manifests are retained for attribution only:
 pythia-70m-v1.tar.gz \tc{3b098817}\ldots\tc{febab47bfe}, pythia-70m-v2.tar.gz \tc{47ce600a}\ldots\tc{14b01117} \evR (full values in \tc{docs/RELEASE_METADATA.md}). No model archive generated by this project exists yet.
 Claude Code (Anthropic) assisted with code, tests, documentation and this report; what it did and how I checked it is in \tc{AI_USE.md}.
 
 \section{Limitations and next steps}
 \textbf{Not done:} teacher labelling, any training, image build, cluster deployment and every Task 4 and Task 7 measurement, CI runs and the failing-gate run, the instructor's \tc{score.py}, \tc{nacl_sim.py} and kit data (not available to me), and gitleaks.
 \textbf{Next steps, in order:} obtain the kit; run \tc{make up}, label, clean and train v1 and v2; publish my own archives with SHA-256 values; score three models; run the standard load test; fill \tc{results/}; trigger the failing and the passing quality-gate runs; rebuild the ZIP from the \tc{final} tag.
-\textbf{Reproducing the demonstration without infrastructure:} \tc{make check} (lint, 29 tests, NACL, subnets), \tc{make demo} followed by \tc{curl}, and \tc{make cost RPS=0.57} or \tc{make slo REQUESTS=1000 FAILED=7} (see \tc{docs/SETUP.md}).
+\textbf{Reproducing the demonstration without infrastructure:} \tc{make check} (lint, 32 tests, NACL, subnets), \tc{make demo} followed by \tc{curl}, and \tc{make cost RPS=0.57} or \tc{make slo REQUESTS=1000 FAILED=7} (see \tc{docs/SETUP.md}).
 
 \clearpage
 \appendix
@@ -298,7 +298,7 @@ Claude Code (Anthropic) assisted with code, tests, documentation and this report
 \small
 \begin{tabularx}{\textwidth}{@{}l c Y@{}}\toprule
 File & Class & Content\\\midrule
-\tc{results/pytest_local.txt} & \evA & 29 tests passed, pyflakes clean\\
+\tc{results/pytest_local.txt} & \evA & 32 tests passed, pyflakes clean\\
 \tc{results/nacl_eval_local.txt}, \tc{results/subnet_calc_local.txt} & \evA & 11/11 packets; subnet plan\\
 \tc{results/demo_api_stub.txt} & \evA & real app with stub model: endpoints, headers, \tc{FAULT_INJECT}\\
 \tc{results/stub_smoke_*} & \evA & Locust toolchain smoke test against the stub (not a service result)\\

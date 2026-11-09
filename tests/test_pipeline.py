@@ -121,3 +121,59 @@ def test_demo_server_serves_real_app_with_stub_model():
     r = c.post("/parse", json={"text": "what is the weather in london"})
     assert r.status_code == 200 and r.json()["intent"] == "weather_query" and r.json()["place"] == "london"
     assert set(r.json()) == {"intent", "date", "time", "place"} and "x-served-by" in r.headers
+
+
+def test_package_model_refuses_empty_and_is_deterministic(tmp_path):
+    import hashlib
+    import importlib.util
+    import json
+    import tarfile
+
+    path = next(ROOT.rglob("package_model.py"))
+    spec = importlib.util.spec_from_file_location("package_model", path)
+    pm = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pm)
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    try:
+        pm.package(empty, "v1", tmp_path / "dist")
+        raise AssertionError("must refuse an empty model dir")
+    except SystemExit:
+        pass
+    assert not (tmp_path / "dist" / "v1.tar.gz").exists()
+    m = tmp_path / "m"
+    m.mkdir()
+    (m / "model.safetensors").write_bytes(b"toy-bytes-not-a-model")  # synthetic test fixture, not a model
+    (m / "config.json").write_text("{}")
+    a = pm.package(m, "v1", tmp_path / "d1")
+    b = pm.package(m, "v1", tmp_path / "d2")
+    assert a["sha256"] == b["sha256"] == hashlib.sha256((tmp_path / "d1" / "v1.tar.gz").read_bytes()).hexdigest()
+    assert (tmp_path / "d1" / "v1.tar.gz.sha256").read_text().split()[0] == a["sha256"]
+    assert "v1" in json.loads((tmp_path / "d1" / "release_manifest.json").read_text())
+    with tarfile.open(tmp_path / "d1" / "v1.tar.gz") as t:
+        assert sorted(t.getnames()) == ["v1/config.json", "v1/model.safetensors"]
+
+
+def test_predict_teacher_uses_worker_prompt_and_exact_reply():
+    import importlib.util
+
+    path = next(ROOT.rglob("predict_teacher.py"))
+    spec = importlib.util.spec_from_file_location("predict_teacher", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    seen = []
+
+    def fake_ask(host, model, prompt):
+        seen.append((host, model, prompt))
+        return " raw reply "
+
+    out = mod.predict_all([{"id": "V001", "text": "hello"}], "Q: {text}", "h", "phi3.5", ask=fake_ask)
+    assert out == [{"id": "V001", "prediction": " raw reply "}] and seen[0][2] == "Q: hello"
+
+
+def test_seaweedfs_has_probes_and_limit():
+    import yaml
+
+    docs = [d for d in yaml.safe_load_all((ROOT / "cluster" / "seaweedfs.yaml").read_text()) if d]
+    c = next(d for d in docs if d["kind"] == "Deployment")["spec"]["template"]["spec"]["containers"][0]
+    assert c["readinessProbe"] and c["livenessProbe"] and c["resources"]["limits"]["memory"] == "1536Mi"

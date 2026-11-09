@@ -38,7 +38,7 @@ A 70M-parameter student (Pythia-70M) is fine-tuned to copy those labels. Only th
                        HPA (1..2 pods at 70% CPU), Locust load test, cost/SLO
 ```
 
-Status of this repository (mock demonstration): all seven tasks are implemented in code and unit-tested where possible (29 tests); Task 5 is verified end to end; labelling, training, Docker, cluster, CI and the real load test have **not been run**, so there are no measured results for them.
+Status of this repository: all seven tasks are implemented in code and unit-tested where possible (32 tests); Task 5 is verified end to end; labelling, training, Docker, cluster, CI and the real load test have **not been run**, so there are no measured results for them.
 
 ---
 
@@ -75,7 +75,7 @@ sha256sum datasets/v1/train.jsonl
 
 **Testing methodology.** Verify shard files together contain exactly 3000 distinct IDs, no ID twice, and each ID sits in the shard its index predicts. Unit-test `clean.py` with hand-made bad replies (invalid JSON, extra key, bad intent, invented slot, duplicate).
 
-**Results [NOT RUN for the real data].** The shard property and the counting identity are tested on synthetic and toy data (`tests/test_pipeline.py`, 29 tests pass: `results/pytest_local.txt`).
+**Results [NOT RUN for the real data].** The shard property and the counting identity are tested on synthetic and toy data (`tests/test_pipeline.py`, 32 tests pass: `results/pytest_local.txt`).
 A real run needs the instructor's `commands_pool.jsonl` and Ollama. For orientation, the table shows what a filled table looks like.
 
 | Quantity | This project | Toy unit test (illustrative, actual run of the test) | Reference run (NanoParse, not mine) |
@@ -183,7 +183,7 @@ docker run --cpus=1 --memory=1g -p 8000:8000 -e MODEL_URI=... -e S3_ENDPOINT=...
 curl -s -X POST localhost:8000/parse -H 'content-type: application/json' -d '{"text":"what is the weather in london"}'
 ```
 
-**Testing.** [TESTED] 5 unit tests with an injected stub generator: success and headers, invalid intent, extra key, fault injection, health/readiness (`tests/test_all.py`; the whole suite, 29 tests, passes: `results/pytest_local.txt`). `tools/demo_server.py` additionally runs the *real* app with a stub generator: `/healthz` 200, `/readyz` 200, a valid `/parse` with both headers, and `FAULT_INJECT=1` giving HTTP 500 `{"error":"invalid_model_output"}` (`results/demo_api_stub.txt`). A 20 s Locust run against the stub (209 requests, 0 failures) proves only the toolchain, not service performance.
+**Testing.** [TESTED] 5 unit tests with an injected stub generator: success and headers, invalid intent, extra key, fault injection, health/readiness (`tests/test_all.py`; the whole suite, 32 tests, passes: `results/pytest_local.txt`). `tools/demo_server.py` additionally runs the *real* app with a stub generator: `/healthz` 200, `/readyz` 200, a valid `/parse` with both headers, and `FAULT_INJECT=1` giving HTTP 500 `{"error":"invalid_model_output"}` (`results/demo_api_stub.txt`). A 20 s Locust run against the stub (209 requests, 0 failures) proves only the toolchain, not service performance.
 
 **Results [NOT RUN].** The Docker daemon was not available, so image size, the 50-request test and peak memory have not been measured. Procedure: the commands above plus `docker inspect -f '{{.State.OOMKilled}}'`.
 Calculated: fp32 weights are about 70.4 M x 4 B = 0.28 GB, which is why they are fetched from object storage. Reference (another student, ARM64, Python 3.12, not mine): image about 1.66 GB, peak memory about 737 MiB, no OOM kill.
@@ -277,7 +277,7 @@ Worked check for `app`: log2(1002) = 9.97, ceil = 10, p = 22, block = 1024, usab
 
 **Security.** Secrets only in Kubernetes Secrets or CI secrets; `.env` ignored by Git; weights excluded by `.gitignore`; gitleaks on every push; least privilege (**limitation:** one shared S3 identity is simplest but not minimal).
 
-**Testing.** [TESTED] 29 tests, pyflakes clean, locally only (`results/pytest_local.txt`). The manual evaluate and quality-gate jobs are written but never run.
+**Testing.** [TESTED] 32 tests, pyflakes clean, locally only (`results/pytest_local.txt`). The manual evaluate and quality-gate jobs are written but never run.
 
 **AI use.** `AI_USE.md` states what Claude Code did and how outputs were checked.
 

@@ -1,17 +1,17 @@
-# Submission checklist (Aniket Raj, 230103030) — mock demonstration
+# Submission checklist (Aniket Raj, 230103030)
 
 Status key: **DONE** completed and checked; **PARTIAL** written or tested only in part; **OPEN** not done; **YOU** needs the student's personal action.
-This checklist is for the **mock demonstration**; it is not a claim that the graded assignment is complete.
+It separates what is done from what still needs execution; it is not a claim that every assignment requirement is complete.
 
 ## A. Completed and verified (evidence in `results/`, see `results/README.md`)
 - DONE Repository organised; README, report (`report/report.pdf`, 7 pages, no empty fields), study guide, setup guide, release metadata and AI-use declaration are consistent with each other and tag every number with an evidence class.
-- DONE 29 unit tests pass; pyflakes clean (`results/pytest_local.txt`); own NACL evaluator 11/11; subnet plan matches an independent computation.
+- DONE 32 unit tests pass; pyflakes clean (`results/pytest_local.txt`); own NACL evaluator 11/11; subnet plan matches an independent computation.
 - DONE Task 5 deliverables (`network/subnets.md`, `nacl.json`, own evaluator and packets).
-- DONE Technical review and fixes: worker writes `teacher_raw` (as required) and cleaning dedupes by command text; `clean.py --s3`; loss written to `training/loss.csv`; library versions recorded; service logs model-load failures; non-root Dockerfiles with `.dockerignore`; PodDisruptionBudget, HPA scale-down window, ingress class; CI split into lint -> unit-tests -> evaluate -> quality-gate (+ secret-scan); `scripts/slo.py`, example rate card, `tools/demo_server.py`.
+- DONE Technical review and fixes (incl. `scripts/package_model.py`, `tools/predict_teacher.py`, SeaweedFS probes): worker writes `teacher_raw` (as required) and cleaning dedupes by command text; `clean.py --s3`; loss written to `training/loss.csv`; library versions recorded; service logs model-load failures; non-root Dockerfiles with `.dockerignore`; PodDisruptionBudget, HPA scale-down window, ingress class; CI split into lint -> unit-tests -> evaluate -> quality-gate (+ secret-scan); `scripts/slo.py`, example rate card, `tools/demo_server.py`.
 - DONE Stub-model API demonstration (`results/demo_api_stub.txt`) and Locust toolchain smoke test (`results/stub_smoke_*`), clearly labelled as not performance results.
 - DONE Worked cost and SLO examples with hypothetical inputs (`results/cost_slo_worked_examples.txt`).
 - DONE Handwritten reflection present as `reflection/230103030.pdf` (3 pages; name, roll number, repo link). Reflection figures kept as **reported, unverified** (`results/REPORTED_FIGURES.md`); cost arithmetic mismatch (3.85 vs 3.95) flagged.
-- DONE Releases audited (`docs/RELEASE_METADATA.md`): no model archives anywhere; external checksums preserved; `mock-demo-v1.0` carries only the package ZIP, its checksum and a provenance file.
+- DONE Releases audited (`docs/RELEASE_METADATA.md`): one Release only (`v1.0`, Latest) with the source ZIP and checksum; no model archives; external checksums preserved in `docs/release_checksums/`; obsolete releases/tags removed.
 - DONE Security checks: no secrets, `.env`, weights or temp files in the repository or ZIP (build-script pattern scan; gitleaks itself not run).
 
 ## B. Outstanding assignment requirements (nothing below has been run; no evidence exists)
@@ -32,5 +32,5 @@ This checklist is for the **mock demonstration**; it is not a claim that the gra
 4. YOU Add the instructor's kit files so the evaluation and gate jobs can run.
 5. YOU Run the pipeline on a machine with Docker, k3d, kubectl and Ollama for real results for Tasks 1–4 and 7, then add the outputs to `results/`.
 6. YOU Upload the ZIP to the college portal. Exact names: `230103030.zip`, `230103030.pdf`.
-7. YOU The earlier annotated tag `final` was **not** moved by the mock work. Only the commit tagged `final` is assessed in the real submission: when you are ready, move it deliberately (never force-pushed by the assistant) and rebuild the ZIP with `python scripts/build_submission.py --out-dir <dir> --require-tag final`.
+7. YOU The earlier annotated tag `final` was **not** moved by this cleanup. Only the commit tagged `final` is assessed in the real submission: when you are ready, move it deliberately (never force-pushed by the assistant) and rebuild the ZIP with `python scripts/build_submission.py --out-dir <dir> --require-tag final`.
 8. YOU Confirm your instructor's policy on reusing public reference material before the graded submission.

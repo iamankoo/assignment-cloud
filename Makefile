@@ -1,4 +1,4 @@
-.PHONY: up down label clean-data train eval test lint load nacl subnets demo cost slo check
+.PHONY: up down label clean-data train eval eval-teacher package test lint load nacl subnets demo cost slo check
 SUBSET ?= 0
 VERSION ?= v1
 
@@ -16,6 +16,10 @@ train:         ## make train / make train SUBSET=50 [NOT RUN]
 eval:          ## predict + score (needs kit score.py)  [NOT RUN]
 	python tools/predict.py --model training/output/$(VERSION) --input data/validation.jsonl --out results/pred_$(VERSION).jsonl
 	python tools/score.py results/pred_$(VERSION).jsonl data/validation.jsonl --out results/score_$(VERSION).json --min-validity 95
+eval-teacher:  ## teacher raw outputs on validation.jsonl (needs Ollama + kit data)   [NOT RUN]
+	python tools/predict_teacher.py --input data/validation.jsonl --out results/pred_teacher.jsonl
+package:       ## tar.gz + sha256 + manifest of a trained model: make package VERSION=v1   [NOT RUN: no trained model]
+	python scripts/package_model.py --model-dir training/output/$(VERSION) --version $(VERSION) --out-dir dist
 test:          ## unit tests                         [TESTED]
 	python -m pytest -q
 lint:          ## pyflakes                           [TESTED]

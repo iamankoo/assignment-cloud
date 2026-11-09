@@ -1,12 +1,12 @@
-# Python 3.10.11, 2026-11-09T04:46Z, Windows 11
+# Python 3.10.11, 2026-11-09T05:06Z, Windows 11 (warning-detail lines omitted)
 $ python -m pytest -q
-.............................                                            [100%]
+................................                                         [100%]
 ============================== warnings summary ===============================
     from starlette.testclient import TestClient as TestClient  # noqa
 service\app.py:69
     @app.on_event("startup")
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-29 passed, 3 warnings in 1.09s
+32 passed, 3 warnings in 1.15s
 
 $ python -m pyflakes service tools scripts tests worker training
 [exit 0]

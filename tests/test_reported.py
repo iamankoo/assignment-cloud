@@ -76,7 +76,7 @@ def test_reliability_objects_in_app_manifest():
 
 
 def test_dockerfiles_run_as_non_root_without_weights():
-    found = [p for p in list(ROOT.rglob("Dockerfile*")) if ".git" not in p.parts]
+    found = [p for p in list(ROOT.rglob("Dockerfile*")) if ".git" not in p.parts and not p.name.endswith("dockerignore")]
     assert len(found) == 2
     for p in found:
         text = p.read_text()

@@ -13,7 +13,7 @@ Needed for the cluster steps (not available on the machine used so far): Docker,
 
 ## 2. Test **[RAN]**
 ```bash
-make test        # 29 unit tests passed (results/pytest_local.txt)
+make test        # 32 unit tests passed (results/pytest_local.txt)
 make lint        # pyflakes clean
 make check       # lint + test + nacl + subnets in one go
 make nacl        # own evaluator: 11/11 (results/nacl_eval_local.txt)
@@ -98,4 +98,4 @@ make down
 ```
 
 ## 9. Model artifacts
-Weights are never committed. The Releases `reference-nanoparse-v1.0` (provenance record) and `mock-demo-v1.0` (mock package) contain **no model archives**: the externally sourced archives were removed because redistribution permission could not be established, and this project has not trained a model yet. Your own v1/v2 archives, checksums and Release are still to be produced; see `RELEASE_METADATA.md`.
+Weights are never committed. The single GitHub Release contains only the source ZIP and its checksum, **no model archives**: the externally sourced archives were removed because redistribution permission could not be established, and this project has not trained a model yet (`make package VERSION=v1` will build the archive and checksum once it has). Your own v1/v2 archives, checksums and Release are still to be produced; see `RELEASE_METADATA.md`.

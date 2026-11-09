@@ -5,7 +5,7 @@ Everything here is classified so that measured evidence cannot be confused with 
 ## Actual: produced by running code in this repository (2026-11-09, Python 3.10.11, Windows 11)
 | File | What it is |
 |---|---|
-| `pytest_local.txt` | 29 unit tests and pyflakes (warning-detail lines omitted) |
+| `pytest_local.txt` | 32 unit tests and pyflakes (warning-detail lines omitted) |
 | `nacl_eval_local.txt` | Own NACL evaluator on 11 hand-written packets (11/11) |
 | `subnet_calc_local.txt` | Subnet plan from `scripts/subnet_calc.py` |
 | `demo_api_stub.txt` | `curl` session against the real FastAPI app with a **stub** generator (`tools/demo_server.py`): endpoints, headers, `FAULT_INJECT` |

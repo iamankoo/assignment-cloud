@@ -26,7 +26,9 @@ EXPLICIT = {
     "tools/locustfile.py": "evaluation/locustfile.py",
     "tools/predict.py": "evaluation/predict.py",
     "tools/demo_server.py": "evaluation/demo_server.py",
-    ".dockerignore": ".dockerignore",
+    ".dockerignore": "docker/Dockerfile.service.dockerignore",
+    "tools/predict_teacher.py": "evaluation/predict_teacher.py",
+    "data/rate_card.example.json": "evaluation/rate_card.example.json",
     "scripts/cost.py": "evaluation/cost.py",
     "Makefile": "docs/Makefile",
     "AI_USE.md": "docs/AI_USE.md",
@@ -34,11 +36,11 @@ EXPLICIT = {
 }
 PREFIX = [("service/", "src/service/"), ("worker/", "src/worker/"), ("prompts/", "src/prompts/"),
           ("scripts/", "src/scripts/"), ("cluster/", "k8s/cluster/")]
-KEEP = ("report/", "reflection/", "tests/", "training/", "k8s/", "network/", "docs/", "results/", ".github/", "data/")
+KEEP = ("report/", "reflection/", "tests/", "training/", "k8s/", "network/", "docs/", "results/", ".github/")
 EXCLUDE = {"scripts/build_submission.py", ".gitignore"}
 TEXT_EXT = {".md", ".py", ".sh", ".yaml", ".yml", ""}
 ZIP_LAYOUT_TOP = {"README.md", "report", "reflection", "src", "tests", "training", "evaluation", "docker", "k8s",
-                  "network", ".github", "results", "docs", "data", ".dockerignore"}
+                  "network", ".github", "results", "docs"}
 
 REWRITES = [
     (r"service/Dockerfile", "docker/Dockerfile.service"),
@@ -48,6 +50,8 @@ REWRITES = [
     (r"tools/locustfile\.py", "evaluation/locustfile.py"),
     (r"tools/predict\.py", "evaluation/predict.py"),
     (r"tools/demo_server\.py", "evaluation/demo_server.py"),
+    (r"tools/predict_teacher\.py", "evaluation/predict_teacher.py"),
+    (r"data/rate_card\.example\.json", "evaluation/rate_card.example.json"),
     (r"tools/score\.py", "evaluation/score.py"),
     (r"scripts/cost\.py", "evaluation/cost.py"),
     (r"(?<![\w./-])service/", "src/service/"),
@@ -69,11 +73,13 @@ TEST_PATCHES = {
     "tests/test_reported.py": [
         ('sys.path[:0] = [str(ROOT / "scripts")]', 'sys.path[:0] = [str(ROOT / "src" / "scripts"), str(ROOT / "evaluation")]'),
         ('ROOT / "cluster" / "seaweedfs.yaml"', 'ROOT / "k8s" / "cluster" / "seaweedfs.yaml"'),
+        ('ROOT / "data" / "rate_card.example.json"', 'ROOT / "evaluation" / "rate_card.example.json"'),
     ],
     "tests/test_pipeline.py": [
         ('[str(ROOT / "worker"), str(ROOT / "service")]', '[str(ROOT / "src" / "worker"), str(ROOT / "src" / "service")]'),
         ('ROOT / "tools" / "predict.py"', 'ROOT / "evaluation" / "predict.py"'),
         ('ROOT / "worker" / "teacher_worker.py"', 'ROOT / "src" / "worker" / "teacher_worker.py"'),
+        ('ROOT / "cluster" / "seaweedfs.yaml"', 'ROOT / "k8s" / "cluster" / "seaweedfs.yaml"'),
     ],
 }
 ZIP_TABLE = """## Repository Structure (submission ZIP layout)
@@ -172,6 +178,8 @@ def main():
         else:
             shutil.copyfile(src, tgt)
 
+    shutil.copyfile(stage / "docker" / "Dockerfile.service.dockerignore", stage / "docker" / "Dockerfile.worker.dockerignore")  # BuildKit per-Dockerfile ignore files
+
     # --- verification inside the staged tree ---
     log = []
 
@@ -224,7 +232,8 @@ def main():
                 "docs/RELEASE_METADATA.md", "src/service/app.py", "src/worker/teacher_worker.py", "training/train.py",
                 "evaluation/predict.py", "docker/Dockerfile.service", "docker/Dockerfile.worker", "k8s/app.yaml",
                 "network/nacl.json", "network/subnets.md", ".github/workflows/ci.yml", "results/pytest_local.txt",
-                "evaluation/demo_server.py", "evaluation/cost.py", "src/scripts/slo.py", "data/rate_card.example.json", ".dockerignore",
+                "evaluation/demo_server.py", "evaluation/predict_teacher.py", "evaluation/cost.py", "src/scripts/slo.py", "src/scripts/package_model.py",
+                "evaluation/rate_card.example.json", "docker/Dockerfile.service.dockerignore", "docker/Dockerfile.worker.dockerignore",
                 "docs/SUBMISSION_CHECKLIST.md", "docs/STUDY_GUIDE.md", "docs/release_checksums/external_reference_artifacts.json"]:
         if not (stage / req).is_file():
             problems.append(f"missing {req}")
