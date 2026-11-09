@@ -10,3 +10,4 @@ This document records academic provenance. It is intentionally kept out of the p
 - **This project's models.** None has been trained yet. Archives and checksums will be published in the project Release after training and evaluation.
 - **Instructor policy.** Confirm the instructor's policy on reusing public reference material before the graded submission.
 - **AI assistance.** See `AI_USE.md`.
+- **Reference results.** The figures in `REFERENCE_RESULTS.md` were supplied as reference material from that public project. They are preserved exactly as supplied, labelled as reference values, and were not executed or verified in this repository.

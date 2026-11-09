@@ -274,7 +274,7 @@ Worked check for `app`: log2(1002) = 9.97, ceil = 10, p = 22, block = 1024, usab
 
 **Testing.** [TESTED] 32 tests, pyflakes clean, locally only (`results/pytest_local.txt`). The manual evaluate and quality-gate jobs are written but never run.
 
-**AI use.** `AI_USE.md` states what Claude Code did and how outputs were checked.
+**AI use.** AI-assisted development and how its output was checked are disclosed in `AI_USE.md`.
 
 ---
 
@@ -310,3 +310,11 @@ A request fails if it is not HTTP 200 within 30 s.
 - Challenges: time, missing student_kit, no Docker/k3d/Ollama in the working environment, a wrong test expectation (A8) found by running tests.
 - Honest status: all seven tasks are implemented in code and unit-tested where possible; Task 5 is also checked end to end; the labelling, training, Docker, cluster, CI and load-test runs have not been executed, so no measured results for them exist.
 - Improvements: run the pipeline end to end, add the Release-based gate, constrained decoding, multi-node cluster.
+
+---
+
+## Reference results
+Figures supplied as reference material (data cleaning, validation scores, container size, load test, cost) are kept exactly as supplied in [`REFERENCE_RESULTS.md`](REFERENCE_RESULTS.md).
+They were not produced by this repository and are not independently verified: use them only to see what a complete run looks like. Source: [`PROVENANCE.md`](PROVENANCE.md).
+Key points: cleaning kept 2,292 of 3,000; validation JSON validity 94% / 90% / 89% (teacher / v1 / v2), so v1 misses the 95% gate; load test 12.36% errors and p95 16,000 ms, missing both targets; cost about 2.93 per 1,000 attempted requests.
+The reflection's reported cost of 3.95 per 1,000 requests is kept as written; 7.90 / 2,052 x 1,000 is approximately 3.85.

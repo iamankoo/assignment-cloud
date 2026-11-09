@@ -21,6 +21,9 @@ Everything here is classified so that measured evidence cannot be confused with 
 ## Reported (project reflection, not verified)
 `REPORTED_FIGURES.md` lists the figures and configuration taken from the handwritten reflection (recovery time, traffic split, cold start, cost, throughput, Ollama and SeaweedFS settings) and the cost discrepancy. No supporting logs exist.
 
+## Reference (supplied, not executed here)
+The supplied reference figures are in `../docs/REFERENCE_RESULTS.md`; no log or data file for them is stored in this folder.
+
 ## Planned (not executed; nothing was fabricated to fill these)
 Teacher shard files, cleaning counts, `training/loss.csv`, `score.py` outputs, Locust CSVs of the real service, `kubectl` outputs, Docker build/size output, CI run links, gitleaks output, and any SHA-256 of a model trained by this project.
 Model archives and checksums will be published in the project Release after training; see `../docs/RELEASE_METADATA.md`.

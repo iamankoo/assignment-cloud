@@ -20,6 +20,7 @@ Command-Parser Distillation on a Local Cloud is a lightweight natural-language c
 | Illustrative | Example used to explain a method |
 | Reported | Value recorded in the project reflection |
 | Planned | Implementation or experiment not yet executed |
+| Reference | Value from supplied reference material; not executed in this repository |
 
 ## Status by task
 
@@ -55,6 +56,20 @@ These come from `reflection/230103030.pdf`. **No supporting logs exist here and 
 
 **Discrepancy for review:** 7.90 INR/hour at 2,052 requests/hour gives 7.90 / 2,052 x 1,000 = **3.85 INR per 1,000 requests**, not 3.95. 3.95 would correspond to 2,000 requests/hour, and it equals the hourly cost of one replica (7.90 / 2). See `results/REPORTED_FIGURES.md` and `results/cost_arithmetic_check.txt` (arithmetic only).
 The reflection's proposed improvements (pre-hydrated persistent volumes, safetensors `mmap`, Cilium eBPF network policies) and its conclusion that the system is "reliable, cost-efficient and scalable" are proposals/conclusions drawn from those unverified figures. Configuration it describes: `OLLAMA_HOST=0.0.0.0:11434`, `OLLAMA_NUM_PARALLEL=2`, `OLLAMA_FLASH_ATTENTION=true` (`docs/SETUP.md`); SeaweedFS with a 2 GiB PVC and 1.5 GiB limit (`cluster/seaweedfs.yaml`, my own manifest). A typed transcription is in `docs/REFLECTION_DRAFT.md`.
+
+## Reference results (supplied; not executed in this repository)
+
+These values were supplied as reference material and are shown exactly as supplied. They are **not** measurements of this repository: no log, score file or checksum for them exists here.
+Full tables: [`docs/REFERENCE_RESULTS.md`](docs/REFERENCE_RESULTS.md); source: [`docs/PROVENANCE.md`](docs/PROVENANCE.md).
+
+| Area | Reference value |
+|---|---|
+| Cleaning (3,000 inputs) | 1 invalid JSON, 57 wrong keys, 610 invalid slots, 40 duplicates; 2,292 retained |
+| Validation (teacher / v1 / v2) | JSON validity 94% / 90% / 89%; full-frame 44% / 41% / 42% |
+| Container | ARM64 image about 1.66 GB; peak memory about 737.4 MiB; no OOM kill |
+| Kubernetes | cold start 11 s (three runs); NACL simulator 6 of 6 packets |
+| Load test | 89 requests, 78 successes, 11 failures; error rate 12.36%; median 3,700 ms; p95 16,000 ms; 0.748 req/s; replicas served 41 / 37 |
+| Cost | 7.90 per hour (two replicas); about 2.93 per 1,000 attempted requests |
 
 ## Architecture
 

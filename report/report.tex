@@ -23,6 +23,7 @@
 \newcommand{\evA}{\textcolor{green!40!black}{\textbf{[A]}}\xspace}
 \newcommand{\evC}{\textcolor{blue!60!black}{\textbf{[C]}}\xspace}
 \newcommand{\evI}{\textcolor{orange!80!black}{\textbf{[I]}}\xspace}
+\newcommand{\evR}{\textcolor{violet!80!black}{\textbf{[R]}}\xspace}
 \newcommand{\evS}{\textcolor{red!70!black}{\textbf{[S]}}\xspace}
 \newcommand{\evP}{\textcolor{gray!70!black}{\textbf{[P]}}\xspace}
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
@@ -43,6 +44,7 @@ cluster deployment, load test, CI runs) have not been executed}; no result in th
 \evA~\textbf{Actual}: produced by executing project code (log in \tc{results/}). \quad
 \evC~\textbf{Calculated}: reproducible mathematical calculation. \quad
 \evI~\textbf{Illustrative}: example used to explain a method. \quad
+\evR~\textbf{Reference}: value from supplied reference material; not executed in this repository. \quad
 \evS~\textbf{Reported}: value recorded in the project reflection; no logs exist. \quad
 \evP~\textbf{Planned}: implementation or experiment not yet executed.}}
 
@@ -276,7 +278,22 @@ Cold start & 18.0\,s & reported, unverified\\
 Cost (2 replicas) and throughput & 7.90 INR/h; 2{,}052 req/h & 7.90 reproduced by calculation \evC\\
 Cost per 1{,}000 requests & 3.95 INR & \textbf{arithmetic mismatch}: $7.90/2052\times1000=3.85$ \evC\\\bottomrule\end{tabularx}\end{center}
 3.95 would correspond to 2{,}000 req/h or to the hourly cost of one replica ($7.90/2$) (\tc{results/cost_arithmetic_check.txt}); the discrepancy is flagged for correction rather than silently changed. The reflection also proposes pre-hydrated persistent volumes
-(a shared ReadWriteMany volume, safetensors \tc{mmap}) to cut cold start, and Cilium eBPF network policies in place of stateless NACLs; both are proposals, not tested changes.
+(a shared ReadWriteMany volume, safetensors \tc{mmap}) to cut cold start, and Cilium eBPF network policies in place of stateless NACLs; both are proposals, not tested changes. \textbf{Configuration described in the reflection} \evS: Ollama server with \tc{OLLAMA_HOST=0.0.0.0:11434}, \tc{OLLAMA_NUM_PARALLEL=2}, \tc{OLLAMA_FLASH_ATTENTION=true}; SeaweedFS with a 2\,GiB PVC and a 1.5\,GiB memory limit (in \tc{cluster/seaweedfs.yaml}); application limits 1 CPU / 1\,GiB (Task 4).
+
+\section{Reference results (supplied, not executed here)}
+The values below were supplied as reference material and are reproduced exactly \evR; none was produced by this repository and no log, score file or checksum for them exists here (full tables: \tc{docs/REFERENCE_RESULTS.md}; source: \tc{docs/PROVENANCE.md}).
+They show what a complete run looks like and where the targets were missed; they are not my measurements.
+\begin{center}\footnotesize\begin{tabularx}{\textwidth}{@{}l Y@{}}\toprule
+Area & Reference value \evR\\\midrule
+Data cleaning (3{,}000 inputs) & invalid JSON 1; wrong keys 57; invalid slots 610; duplicates 40; retained 2{,}292 (categories may overlap)\\
+Validation, 100 examples (teacher / v1 / v2) & JSON validity 94\% / 90\% / 89\%; intent 85 / 75 / 76; date 71 / 68 / 69; time 79 / 76 / 79; place 81 / 77 / 71; full-frame 44 / 41 / 42 (\%)\\
+Container & Python 3.12 slim, CPU-only PyTorch; ARM64 image about 1.66\,GB; peak memory about 737.4\,MiB, no OOM kill\\
+Kubernetes & 2 replicas, HPA 1--2 at 70\%, maxSurge 1 / maxUnavailable 0; rollback v2 to v1 recorded; cold start 11\,s in each of three runs\\
+Network and CI & NACL simulator 6 of 6 packets; lint, five unit tests, evaluation and secret scan completed; untrained model failed the gate as expected\\
+Load test (4 users, 2 min) & 89 requests, 78 successes, 11 failures (9 HTTP 500, 2 HTTP 0); error rate 12.36\%; median 3{,}700\,ms, average 5{,}297\,ms, p95 16{,}000\,ms; 0.748 req/s; replicas served 41 and 37; peak CPU about 993m / 989m, memory about 556 / 555\,MiB\\
+Cost and SLO & 7.90 per hour for two replicas; about 2.93 per 1{,}000 attempted requests at 0.748439 req/s; 99\% SLO budget 0.89 failures, 11 failures consume about 1{,}236\%\\\bottomrule
+\end{tabularx}\end{center}
+In that reference run v1 does not meet the 95\% validity gate, and both load-test targets (error rate at most 1\%, p95 at most 5{,}000\,ms) are missed.
 
 \section{Provenance and AI use}
 Academic provenance and reuse disclosures are in \tc{PROVENANCE.md}; AI-assisted development, human checking and known limits are in \tc{AI_USE.md}.
